@@ -1,0 +1,78 @@
+# =======================================================
+# Hugging Face Spaces Profile
+# Overrides application.yml for HF Docker deployment
+# =======================================================
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=true&requireSSL=true&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+
+  # File Upload
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 10MB
+
+  # Mail
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Server port — HF Spaces uses 7860
+server:
+  port: 7860
+  servlet:
+    context-path: /
+
+# JWT
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000
+
+# File uploads go to /tmp (writable in HF container)
+file:
+  upload-dir: /tmp/uploads
+  allowed-extensions: jpg,jpeg,png,gif,webp
+
+# Twilio (optional — disable if not configured)
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID:DISABLED}
+  auth-token: ${TWILIO_AUTH_TOKEN:DISABLED}
+  phone-number: ${TWILIO_PHONE_NUMBER:DISABLED}
+
+# Fast2SMS (optional)
+fast2sms:
+  api:
+    key: ${FAST2SMS_API_KEY:DISABLED}
+
+logging:
+  level:
+    root: WARN
+    com.georeport: INFO

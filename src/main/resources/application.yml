@@ -55,7 +55,7 @@ jwt:
 
 # File Storage Configuration
 file:
-  upload-dir: ./uploads
+  upload-dir: /tmp/uploads
   allowed-extensions: jpg,jpeg,png,gif,webp
 
 # Server Configuration

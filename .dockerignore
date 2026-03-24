@@ -1,0 +1,14 @@
+target/
+*.class
+*.log
+.git/
+.gitignore
+.mvn/wrapper/maven-wrapper.jar
+*.md
+uploads/
+ALL_CODE_MERGED.txt
+VSCODE_SETUP.md
+implemented_code/
+push_*.txt
+git_push_error.txt
+.vscode/
