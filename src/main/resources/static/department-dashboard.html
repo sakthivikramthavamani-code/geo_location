@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Dashboard - SmartCity Flow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #f3f4f6; color: #111827; }
+
+        /* Top Navigation Bar */
+        .topbar {
+            background: #1f2937;
+            color: white;
+            padding: 0 2rem;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .topbar .brand { font-size: 1.2rem; font-weight: 700; }
+        .topbar .brand span { color: #6366f1; }
+        .topbar .dept-label {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .topbar .user-info { font-size: 0.85rem; color: #9ca3af; }
+        .topbar a.logout { color: #f87171; text-decoration: none; font-size: 0.85rem; }
+
+        /* Main Layout */
+        .container { max-width: 1300px; margin: 2rem auto; padding: 0 1.5rem; }
+
+        .page-header { margin-bottom: 2rem; }
+        .page-header h1 { font-size: 1.75rem; font-weight: 700; }
+        .page-header p { color: #6b7280; margin-top: 0.3rem; }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.2rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .stat-card .stat-value { font-size: 2rem; font-weight: 700; }
+        .stat-card .stat-label { font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem; }
+        .stat-card.total  .stat-value { color: #4f46e5; }
+        .stat-card.pending .stat-value { color: #d97706; }
+        .stat-card.inprogress .stat-value { color: #3b82f6; }
+        .stat-card.done .stat-value { color: #10b981; }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .controls label { font-weight: 600; font-size: 0.88rem; }
+        .controls select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 0.88rem;
+        }
+
+        /* Complaint Cards */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.25rem;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            padding: 1.25rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            border-top: 3px solid var(--dept-color, #4f46e5);
+            transition: box-shadow 0.2s;
+        }
+        .card:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+
+        .badge { padding: 0.2rem 0.55rem; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; }
+        .badge-HIGH    { background: #fee2e2; color: #991b1b; }
+        .badge-MEDIUM  { background: #fef3c7; color: #92400e; }
+        .badge-LOW     { background: #d1fae5; color: #065f46; }
+
+        .status-badge { padding: 0.22rem 0.55rem; border-radius: 4px; font-size: 0.72rem; font-weight: 700; display: inline-block; margin-bottom: 0.25rem; }
+        .status-SUBMITTED   { background: #e0e7ff; color: #3730a3; }
+        .status-IN_PROGRESS { background: #bfdbfe; color: #1e40af; }
+        .status-RESOLVED    { background: #bbf7d0; color: #166534; }
+        .status-REJECTED    { background: #fee2e2; color: #991b1b; }
+
+        .card-title { font-weight: 600; font-size: 1rem; }
+        .card-meta  { font-size: 0.82rem; color: #6b7280; }
+        .card-desc  { font-size: 0.9rem; line-height: 1.5; color: #374151; }
+        .card-contact { font-size: 0.8rem; color: #6b7280; }
+        .card-actions {
+            margin-top: auto;
+            padding-top: 0.75rem;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .complaint-id { font-size: 0.75rem; color: #9ca3af; }
+        .status-select {
+            padding: 0.35rem 0.5rem;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+            font-size: 0.82rem;
+            cursor: pointer;
+        }
+
+        /* Empty State */
+        .empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 4rem 1rem;
+            color: #6b7280;
+            background: white;
+            border-radius: 10px;
+            border: 2px dashed #e5e7eb;
+        }
+
+        /* Loading */
+        #loading { text-align: center; padding: 4rem; color: #6b7280; display: none; }
+
+        /* Toast */
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+        .toast { padding: 10px 18px; border-radius: 8px; color: white; font-size: 0.88rem; background: #1f2937; border-left: 4px solid #10b981; animation: slideIn 0.25s ease; }
+        @keyframes slideIn { from { opacity:0; transform:translateX(100%); } to { opacity:1; transform:translateX(0); } }
+    </style>
+</head>
+<body>
+
+<!-- Top Navbar -->
+<div class="topbar">
+    <div class="brand">SmartCity<span>Flow</span></div>
+    <div id="deptBadge" class="dept-label" style="background: rgba(255,255,255,0.15);">Loading...</div>
+    <div style="display:flex; gap:1rem; align-items:center;">
+        <span class="user-info" id="userDisplay">Department Staff</span>
+        <a class="logout" href="/login.html">Logout</a>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 id="pageTitle">Department Dashboard</h1>
+        <p id="pageSubtitle">Loading complaints...</p>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+        <div class="stat-card total">
+            <div class="stat-value" id="statTotal">–</div>
+            <div class="stat-label">Total Complaints</div>
+        </div>
+        <div class="stat-card pending">
+            <div class="stat-value" id="statSubmitted">–</div>
+            <div class="stat-label">Submitted</div>
+        </div>
+        <div class="stat-card inprogress">
+            <div class="stat-value" id="statInProgress">–</div>
+            <div class="stat-label">In Progress</div>
+        </div>
+        <div class="stat-card done">
+            <div class="stat-value" id="statResolved">–</div>
+            <div class="stat-label">Resolved</div>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="controls">
+        <label>Filter by Status:</label>
+        <select id="statusFilter">
+            <option value="">All Statuses</option>
+            <option value="SUBMITTED">Submitted</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="REJECTED">Rejected</option>
+        </select>
+        <label>Filter by Priority:</label>
+        <select id="priorityFilter">
+            <option value="">All Priorities</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+        </select>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading">⏳ Loading complaints...</div>
+
+    <!-- Complaint Cards Grid -->
+    <div class="grid" id="grid"></div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+(function () {
+    // ─── Read department from URL ?dept=Road+Department ───────────────────────
+    const params = new URLSearchParams(window.location.search);
+    const dept = params.get('dept') || 'General Administration';
+
+    // Department → accent color mapping
+    const DEPT_COLORS = {
+        'Road Department':        '#e74c3c',
+        'Water Department':       '#3498db',
+        'Sanitation Department':  '#27ae60',
+        'Electricity Department': '#f39c12',
+        'Traffic Department':     '#e67e22',
+        'Public Works Department':'#1abc9c',
+        'General Administration': '#95a5a6'
+    };
+    const deptColor = DEPT_COLORS[dept] || '#4f46e5';
+
+    // Set dept badge color and page title
+    document.getElementById('deptBadge').textContent = dept;
+    document.getElementById('deptBadge').style.background = deptColor + '33';
+    document.getElementById('deptBadge').style.color = deptColor;
+    document.getElementById('pageTitle').textContent = dept + ' Dashboard';
+    document.getElementById('pageSubtitle').textContent = 'Showing complaints assigned to your department only.';
+    document.title = dept + ' Dashboard - SmartCity Flow';
+    document.documentElement.style.setProperty('--dept-color', deptColor);
+
+    let allComplaints = [];
+
+    // ─── JWT token (stored from login) ───────────────────────────────────────
+    function getToken() {
+        return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
+    }
+
+    // ─── Fetch complaints from API ────────────────────────────────────────────
+    async function loadComplaints() {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('grid').innerHTML = '';
+        try {
+            const res = await fetch(`/api/department/issues?dept=${encodeURIComponent(dept)}`, {
+                headers: { 'Authorization': 'Bearer ' + getToken() }
+            });
+            if (res.status === 401) {
+                window.location.href = '/login.html';
+                return;
+            }
+            const data = await res.json();
+            allComplaints = data.data || [];
+            updateStats(allComplaints);
+            renderCards(allComplaints);
+        } catch (err) {
+            document.getElementById('grid').innerHTML =
+                '<div class="empty">⚠️ Could not load complaints. Please check your connection or login again.</div>';
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    // ─── Render Cards ─────────────────────────────────────────────────────────
+    function renderCards(complaints) {
+        const grid = document.getElementById('grid');
+        const statusFilter   = document.getElementById('statusFilter').value;
+        const priorityFilter = document.getElementById('priorityFilter').value;
+
+        let filtered = complaints;
+        if (statusFilter)   filtered = filtered.filter(c => c.status === statusFilter);
+        if (priorityFilter) filtered = filtered.filter(c => c.priority === priorityFilter);
+
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div class="empty">📭 No complaints found for the selected filters.</div>';
+            return;
+        }
+
+        grid.innerHTML = filtered.map(c => {
+            const dateStr = c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '–';
+            return `
+                <div class="card" style="--dept-color: ${deptColor}">
+                    <div class="card-header">
+                        <div>
+                            <span class="status-badge status-${c.status}">${c.statusDisplayName || c.status}</span>
+                            <div class="card-title">${escHtml(c.title)}</div>
+                        </div>
+                        <span class="badge badge-${c.priority}">${c.priority}</span>
+                    </div>
+                    <div class="card-meta">📍 ${escHtml(c.address || c.ward || 'N/A')} &nbsp;·&nbsp; 📅 ${dateStr}</div>
+                    <div class="card-meta">🏷️ ${escHtml(c.categoryName || '')}</div>
+                    <div class="card-desc">${escHtml(c.description)}</div>
+                    ${c.contactPhone || c.contactEmail ? `
+                    <div class="card-contact">
+                        ${c.contactPhone ? '📞 ' + escHtml(c.contactPhone) : ''}
+                        ${c.contactEmail ? '✉️ ' + escHtml(c.contactEmail) : ''}
+                    </div>` : ''}
+                    <div class="card-actions">
+                        <span class="complaint-id">ID: ${c.id}</span>
+                        <select class="status-select" data-id="${c.id}" onchange="updateStatus(${c.id}, this.value)">
+                            <option value="SUBMITTED"   ${c.status === 'SUBMITTED'   ? 'selected' : ''}>⏳ Submitted</option>
+                            <option value="IN_PROGRESS" ${c.status === 'IN_PROGRESS' ? 'selected' : ''}>🔄 In Progress</option>
+                            <option value="RESOLVED"    ${c.status === 'RESOLVED'    ? 'selected' : ''}>✅ Resolved</option>
+                            <option value="REJECTED"    ${c.status === 'REJECTED'    ? 'selected' : ''}>❌ Rejected</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ─── Update Stats ─────────────────────────────────────────────────────────
+    function updateStats(complaints) {
+        document.getElementById('statTotal').textContent      = complaints.length;
+        document.getElementById('statSubmitted').textContent  = complaints.filter(c => c.status === 'SUBMITTED').length;
+        document.getElementById('statInProgress').textContent = complaints.filter(c => c.status === 'IN_PROGRESS').length;
+        document.getElementById('statResolved').textContent   = complaints.filter(c => c.status === 'RESOLVED').length;
+    }
+
+    // ─── Update Status via API ────────────────────────────────────────────────
+    window.updateStatus = async function(id, newStatus) {
+        try {
+            const res = await fetch(`/api/department/issues/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + getToken()
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (!res.ok) throw new Error('Update failed');
+            // Update local state
+            const complaint = allComplaints.find(c => c.id === id);
+            if (complaint) {
+                complaint.status = newStatus;
+                complaint.statusDisplayName = newStatus.replace('_', ' ');
+            }
+            updateStats(allComplaints);
+            renderCards(allComplaints);
+            showToast(`Status updated to ${newStatus.replace('_', ' ')}`);
+        } catch (err) {
+            showToast('❌ Status update failed. Please try again.', 'error');
+        }
+    };
+
+    // ─── Toast ─────────────────────────────────────────────────────────────────
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.textContent = msg;
+        document.getElementById('toast-container').appendChild(t);
+        setTimeout(() => t.remove(), 3500);
+    }
+
+    // ─── Utility ──────────────────────────────────────────────────────────────
+    function escHtml(str) {
+        return String(str || '').replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]));
+    }
+
+    // ─── Filter Listeners ─────────────────────────────────────────────────────
+    document.getElementById('statusFilter').addEventListener('change', () => renderCards(allComplaints));
+    document.getElementById('priorityFilter').addEventListener('change', () => renderCards(allComplaints));
+
+    // ─── Init ──────────────────────────────────────────────────────────────────
+    loadComplaints();
+})();
+</script>
+</body>
+</html>

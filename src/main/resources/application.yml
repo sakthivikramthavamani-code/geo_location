@@ -1,0 +1,83 @@
+# ===========================================
+# Production Configuration (MySQL Database)
+# ===========================================
+
+spring:
+  application:
+    name: geo-issue-reporter
+
+  # MySQL Database Configuration
+  datasource:
+    url: jdbc:mysql://localhost:3306/georeport_db?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # JPA & Hibernate Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+  # File Upload Configuration
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 15MB
+
+  # Static Resources
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+  # Mail Configuration
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:disabled}
+    password: ${MAIL_PASSWORD:disabled}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:this_is_a_disabled_fallback_key_that_is_long_enough_for_hs256}
+  expiration: 86400000
+
+# File Storage Configuration
+file:
+  upload-dir: /tmp/uploads
+  allowed-extensions: jpg,jpeg,png,gif,webp
+
+# Server Configuration
+server:
+  port: 8082
+  servlet:
+    context-path: /
+
+# Twilio Configuration
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID:DISABLED}
+  auth-token: ${TWILIO_AUTH_TOKEN:DISABLED}
+  phone-number: ${TWILIO_PHONE_NUMBER:YOUR_TWILIO_NUMBER_HERE}
+
+# Fast2SMS Configuration
+fast2sms:
+  api:
+    key: ${FAST2SMS_API_KEY:DISABLED}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.georeport: INFO
+    org.springframework.web: INFO

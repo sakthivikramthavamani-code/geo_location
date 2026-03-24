@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev SMS Dashboard | Real-time OTP Simulation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .phone-container {
+            width: 350px;
+            height: 600px;
+            background: #000;
+            border-radius: 40px;
+            border: 8px solid #334155;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .phone-screen {
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-bar {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: white;
+        }
+
+        .chat-area {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-bottom: 0.5rem;
+        }
+
+        .message.received {
+            background: #334155;
+            color: white;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .timestamp {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+            display: block;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #475569;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .connection-status {
+            bottom: 1rem;
+            font-size: 0.7rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin-top: 1rem;
+        }
+
+        .status-online { background: #065f46; color: #34d399; }
+        .status-offline { background: #991b1b; color: #f87171; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Dev SMS Dashboard</h1>
+        <p>Real-time Mobile OTP Simulation</p>
+    </div>
+
+    <div class="phone-container">
+        <div class="phone-screen">
+            <div class="status-bar">
+                <span>9:41</span>
+                <div>
+                    <span class="material-icons" style="font-size: 14px;">signal_cellular_alt</span>
+                    <span class="material-icons" style="font-size: 14px;">wifi</span>
+                    <span class="material-icons" style="font-size: 14px;">battery_full</span>
+                </div>
+            </div>
+            
+            <div id="chatArea" class="chat-area">
+                <div class="empty-state">
+                    <span class="material-icons" style="font-size: 48px; margin-bottom: 1rem;">message</span>
+                    <p>No messages yet. Send an OTP from the GeoReport dashboard!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" class="connection-status status-offline">Connecting to WebSocket...</div>
+
+    <script>
+        let stompClient = null;
+
+        function connect() {
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.debug = null; // Disable logging
+
+            stompClient.connect({}, function (frame) {
+                setStatus(true);
+                stompClient.subscribe('/topic/dev-sms', function (msg) {
+                    showSms(JSON.parse(msg.body));
+                });
+            }, function (err) {
+                setStatus(false);
+                setTimeout(connect, 5000);
+            });
+        }
+
+        function setStatus(online) {
+            const el = document.getElementById('status');
+            el.className = 'connection-status ' + (online ? 'status-online' : 'status-offline');
+            el.textContent = online ? 'WebSocket Online' : 'WebSocket Reconnecting...';
+        }
+
+        function showSms(sms) {
+            const chatArea = document.getElementById('chatArea');
+            const emptyState = chatArea.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message received';
+            msgDiv.innerHTML = `
+                <div>${sms.content}</div>
+                <span class="timestamp">${sms.to} • ${sms.timestamp}</span>
+            `;
+            chatArea.appendChild(msgDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            // Simple notification sound or browser notification could go here
+            if (Notification.permission === "granted") {
+                new Notification("New OTP Received", { body: sms.content });
+            }
+        }
+
+        // Request notification permission
+        if (Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+
+        connect();
+    </script>
+</body>
+</html>

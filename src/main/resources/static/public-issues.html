@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="View public issues reported in your area">
+    <title>Public Issues - GeoReport</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+                        accent: { 400: '#38bdf8', 500: '#0ea5e9' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="font-sans bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen">
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-slate-900/80 backdrop-blur-xl border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-2">
+                        <span class="material-icons text-primary-500 text-3xl">location_city</span>
+                        <span class="text-xl font-bold text-white">GeoReport</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="login.html" class="px-4 py-2 text-gray-300 hover:text-white transition">Login</a>
+                    <a href="register.html"
+                        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 transition">Report
+                        Issue</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-20 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-white mb-2">Public Issues</h1>
+            <p class="text-gray-400">See what's being reported and resolved in your community</p>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="glass-card p-4 mb-6">
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex-1 min-w-[200px]">
+                    <input type="text" id="searchInput" placeholder="Search issues..." class="input-field text-sm"
+                        onkeyup="debounceSearch()">
+                </div>
+                <div class="flex-1 min-w-[150px]">
+                    <select id="filterStatus" class="input-field text-sm" onchange="loadPublicIssues()">
+                        <option value="">All Statuses</option>
+                        <option value="SUBMITTED">Submitted</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="RESOLVED">Resolved</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[150px]">
+                    <select id="filterCategory" class="input-field text-sm" onchange="loadPublicIssues()">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[150px]">
+                    <select id="sortBy" class="input-field text-sm" onchange="loadPublicIssues()">
+                        <option value="createdAt">Newest First</option>
+                        <option value="voteCount">Most Voted</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="glass-card p-4 text-center">
+                <p class="text-2xl font-bold text-white" id="statTotal">0</p>
+                <p class="text-gray-400 text-sm">Total Issues</p>
+            </div>
+            <div class="glass-card p-4 text-center">
+                <p class="text-2xl font-bold text-green-400" id="statResolved">0</p>
+                <p class="text-gray-400 text-sm">Resolved</p>
+            </div>
+            <div class="glass-card p-4 text-center">
+                <p class="text-2xl font-bold text-yellow-400" id="statInProgress">0</p>
+                <p class="text-gray-400 text-sm">In Progress</p>
+            </div>
+            <div class="glass-card p-4 text-center">
+                <p class="text-2xl font-bold text-indigo-400" id="statSubmitted">0</p>
+                <p class="text-gray-400 text-sm">Submitted</p>
+            </div>
+        </div>
+
+        <!-- Issues Grid -->
+        <div id="issuesGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="col-span-full text-center py-12 text-gray-400">
+                <div class="spinner mx-auto mb-4"></div>
+                Loading issues...
+            </div>
+        </div>
+
+        <!-- Load More Button -->
+        <div id="loadMoreContainer" class="text-center mt-8 hidden">
+            <button onclick="loadMore()"
+                class="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-500 transition">
+                Load More Issues
+            </button>
+        </div>
+    </main>
+
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox">
+        <button class="lightbox-close" onclick="closeLightbox()">
+            <span class="material-icons">close</span>
+        </button>
+        <div class="lightbox-content">
+            <img id="lightboxImage" src="" alt="Issue Image">
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Footer -->
+    <footer class="py-8 text-center text-gray-500 text-sm border-t border-white/10">
+        <p>&copy; <span id="footerYear"></span> GeoReport. All rights reserved.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        let currentPage = 0;
+        let totalPages = 1;
+        let searchTimeout;
+
+        async function init() {
+            document.getElementById('footerYear').textContent = new Date().getFullYear();
+            await loadCategories();
+            await loadPublicIssues();
+            await loadStats();
+        }
+
+        async function loadCategories() {
+            try {
+                const result = await GeoReport.apiRequest('/api/categories');
+                if (result.success) {
+                    const select = document.getElementById('filterCategory');
+                    result.data.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (e) {
+                console.error('Error loading categories:', e);
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const result = await GeoReport.apiRequest('/api/public/stats');
+                if (result.success) {
+                    document.getElementById('statTotal').textContent = result.data.totalIssues || 0;
+                    document.getElementById('statResolved').textContent = result.data.resolvedCount || 0;
+                    document.getElementById('statInProgress').textContent = result.data.inProgressCount || 0;
+                    document.getElementById('statSubmitted').textContent = result.data.submittedCount || 0;
+                }
+            } catch (e) {
+                console.error('Error loading stats:', e);
+            }
+        }
+
+        function debounceSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentPage = 0;
+                loadPublicIssues();
+            }, 300);
+        }
+
+        async function loadPublicIssues(append = false) {
+            if (!append) currentPage = 0;
+
+            const keyword = document.getElementById('searchInput').value;
+            const status = document.getElementById('filterStatus').value;
+            const categoryId = document.getElementById('filterCategory').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            let url = `/api/issues/public/all?page=${currentPage}&size=12`;
+            if (status) url += `&status=${status}`;
+            if (categoryId) url += `&categoryId=${categoryId}`;
+
+            try {
+                const result = await GeoReport.apiRequest(url);
+                if (result.success) {
+                    const issues = result.data.content || [];
+                    totalPages = result.data.totalPages || 1;
+
+                    const container = document.getElementById('issuesGrid');
+
+                    if (!append) {
+                        if (issues.length === 0) {
+                            container.innerHTML = `
+                                <div class="col-span-full text-center py-12 text-gray-400">
+                                    <span class="material-icons text-5xl mb-4">search_off</span>
+                                    <p>No issues found matching your filters</p>
+                                </div>`;
+                        } else {
+                            container.innerHTML = issues.map(issue => renderIssueCard(issue)).join('');
+                        }
+                    } else {
+                        container.insertAdjacentHTML('beforeend', issues.map(issue => renderIssueCard(issue)).join(''));
+                    }
+
+                    // Show/hide load more
+                    const loadMoreBtn = document.getElementById('loadMoreContainer');
+                    if (currentPage < totalPages - 1 && issues.length > 0) {
+                        loadMoreBtn.classList.remove('hidden');
+                    } else {
+                        loadMoreBtn.classList.add('hidden');
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading issues:', e);
+            }
+        }
+
+        function renderIssueCard(issue) {
+            return `
+                <div class="glass-card p-4 hover-lift cursor-pointer" onclick="openIssueDetail(${issue.id})">
+                    ${issue.images && issue.images.length > 0 ? `
+                        <div class="h-40 rounded-lg overflow-hidden mb-3 bg-slate-800">
+                            <img src="${issue.images[0].imageUrl}" alt="${issue.title}" 
+                                class="w-full h-full object-cover" onclick="event.stopPropagation(); openLightbox('${issue.images[0].imageUrl}')">
+                        </div>
+                    ` : `
+                        <div class="h-40 rounded-lg mb-3 bg-gradient-to-br from-slate-800 to-slate-700 flex items-center justify-center">
+                            <span class="material-icons text-5xl" style="color: ${issue.categoryColor}">${GeoReport.getCategoryIcon(issue.categoryIcon)}</span>
+                        </div>
+                    `}
+                    
+                    <div class="flex items-start justify-between mb-2">
+                        <h3 class="text-white font-medium line-clamp-1">${issue.title}</h3>
+                        ${GeoReport.getStatusBadge(issue.status)}
+                    </div>
+                    
+                    <p class="text-gray-400 text-sm line-clamp-2 mb-3">${issue.description}</p>
+                    
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <div class="flex items-center flex-wrap gap-1">
+                            <span class="flex items-center">
+                                <span class="material-icons text-sm mr-1" style="color: ${issue.categoryColor}">${GeoReport.getCategoryIcon(issue.categoryIcon)}</span>
+                                ${issue.categoryName}
+                            </span>
+                            ${issue.department ? `<span class="px-1">•</span><span class="px-1.5 py-0.5 rounded bg-primary-600/20 text-primary-400 border border-primary-500/30">${issue.department}</span>` : ''}
+                        </div>
+                        <span class="whitespace-nowrap ml-2">${GeoReport.formatRelativeTime(issue.createdAt)}</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
+                        <div class="flex items-center space-x-3 text-gray-400 text-sm">
+                            <span class="flex items-center">
+                                <span class="material-icons text-sm mr-1">thumb_up</span>
+                                ${issue.voteCount || 0}
+                            </span>
+                            <span class="flex items-center">
+                                <span class="material-icons text-sm mr-1">chat</span>
+                                ${issue.commentCount || 0}
+                            </span>
+                        </div>
+                        ${issue.address ? `<span class="text-gray-500 text-xs truncate max-w-[150px]">${issue.address}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadMore() {
+            currentPage++;
+            loadPublicIssues(true);
+        }
+
+        function openIssueDetail(issueId) {
+            // Redirect to login for full details
+            window.location.href = `login.html?redirect=/citizen-dashboard.html&issue=${issueId}`;
+        }
+
+        function openLightbox(imageUrl) {
+            document.getElementById('lightboxImage').src = imageUrl;
+            document.getElementById('lightbox').classList.add('open');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('open');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        init();
+    </script>
+</body>
+
+</html>
