@@ -1,26 +1,37 @@
-# Build stage
+# ====================================================
+# Stage 1: Build the application
+# ====================================================
 FROM maven:3.9.6-eclipse-temurin-17 AS build
+
 WORKDIR /app
+
+# Copy pom.xml and download dependencies first (layer caching)
 COPY pom.xml .
-COPY src ./src
-RUN mvn clean package -DskipTests
+RUN mvn dependency:go-offline -B
 
-# Run stage
-FROM eclipse-temurin:17-jre-alpine
+# Copy source code and build
+COPY src ./src
+RUN mvn clean package -DskipTests -B
+
+# ====================================================
+# Stage 2: Run the application
+# ====================================================
+FROM eclipse-temurin:17-jre-jammy
+
 WORKDIR /app
 
-# Copy the built jar
+# Create uploads directory in /tmp (writable in containers)
+RUN mkdir -p /tmp/uploads
+
+# Copy the JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Create uploads directory
-RUN mkdir -p /app/uploads
+# Hugging Face Spaces uses port 7860
+EXPOSE 7860
 
-# Expose port
-EXPOSE 8080
-
-# Environment variables (will be overridden by Railway)
-ENV SPRING_PROFILES_ACTIVE=prod
-ENV SERVER_PORT=8080
-
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run with the 'hf' profile and production settings
+ENTRYPOINT ["java", \
+  "-Xmx512m", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-Dspring.profiles.active=hf", \
+  "-jar", "app.jar"]
