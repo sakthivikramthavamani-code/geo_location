@@ -1,0 +1,48 @@
+# Compiled class files
+target/
+*.class
+
+# Logs
+*.log
+logs/
+
+# IDE files
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+*.swp
+*.swo
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# Build files
+build/
+out/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+*.env.local
+
+# Uploaded files (should be in cloud storage in production)
+uploads/
+
+# Temp files
+*.tmp
+*.temp
+
+# Tools directory (contains downloaded Maven/Git)
+tools/
+
+# Scratch / generated files - do not commit
+ALL_CODE_MERGED.txt
+VSCODE_SETUP.md
+implemented_code/
+git_push_error.txt
+push_output*.txt

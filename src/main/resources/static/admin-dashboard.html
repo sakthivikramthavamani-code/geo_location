@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin Dashboard - Manage and resolve public issues">
+    <title>Admin Dashboard - GeoReport</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: { 500: '#eab308', 600: '#ca8a04', 700: '#a16207' },
+                        accent: { 400: '#facc15', 500: '#eab308' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="font-sans bg-gradient-to-br from-black via-zinc-900 to-black min-h-screen">
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-black/80 backdrop-blur-xl border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-2">
+                        <span class="material-icons text-primary-500 text-3xl">location_city</span>
+                        <span class="text-xl font-bold text-white">GeoReport</span>
+                    </a>
+                    <span
+                        class="ml-4 px-3 py-1 text-xs font-medium bg-primary-600/30 text-primary-300 rounded-full">Admin</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Live indicator -->
+                    <div class="flex items-center space-x-2 text-sm text-gray-400">
+                        <div class="pulse-dot"></div>
+                        <span>Live Updates</span>
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button id="notifBtn" class="relative p-2 text-gray-400 hover:text-white transition">
+                            <span class="material-icons">notifications</span>
+                            <span id="notifBadge" class="notification-badge hidden">0</span>
+                        </button>
+
+                        <!-- Notifications Dropdown -->
+                        <div id="notifDropdown" class="notification-dropdown hidden">
+                            <div class="notif-header">
+                                <h4>Notifications</h4>
+                                <button onclick="markAllNotificationsAsRead()"
+                                    class="text-xs text-primary-500 hover:text-primary-400">Mark all as read</button>
+                            </div>
+                            <div id="notifList" class="notif-list">
+                                <div class="text-center py-8 text-gray-500 text-sm">Loading notifications...</div>
+                            </div>
+                            <div class="notif-footer">
+                                <a href="javascript:void(0)" class="text-xs text-gray-400 hover:text-white">View all
+                                    activity</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Menu -->
+                    <div class="relative">
+                        <button id="userMenuBtn"
+                            class="flex items-center space-x-2 text-gray-300 hover:text-white transition">
+                            <div class="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
+                                <span class="material-icons text-white text-sm">admin_panel_settings</span>
+                            </div>
+                            <span id="userName" class="hidden md:block">Admin</span>
+                            <span class="material-icons text-sm">expand_more</span>
+                        </button>
+                        <div id="userMenu"
+                            class="hidden absolute right-0 mt-2 w-48 py-2 bg-slate-800 rounded-xl shadow-xl border border-white/10">
+                            <a href="/profile.html"
+                                class="block px-4 py-2 text-gray-300 hover:bg-white/5 hover:text-white border-b border-white/10 mb-1 pb-2">
+                                <span class="material-icons text-sm mr-2 align-middle">person</span> Profile
+                            </a>
+                            <a href="#" onclick="GeoReport.logout()"
+                                class="block px-4 py-2 text-gray-300 hover:bg-white/5 hover:text-white">
+                                <span class="material-icons text-sm mr-2 align-middle">logout</span> Logout
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Direct Logout Button -->
+                    <button onclick="GeoReport.logout()"
+                        class="ml-2 p-2 text-red-400 hover:text-red-300 transition hover:bg-white/5 rounded-full"
+                        title="Logout">
+                        <span class="material-icons">power_settings_new</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-20 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="glass-card p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Issues</p>
+                        <p class="text-3xl font-bold text-white" id="statTotal">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center">
+                        <span class="material-icons text-primary-400">assignment</span>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Submitted</p>
+                        <p class="text-3xl font-bold text-indigo-400" id="statSubmitted">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center">
+                        <span class="material-icons text-indigo-400">pending</span>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">In Progress</p>
+                        <p class="text-3xl font-bold text-yellow-400" id="statInProgress">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                        <span class="material-icons text-yellow-400">engineering</span>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card p-6 hover-lift">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Resolved</p>
+                        <p class="text-3xl font-bold text-green-400" id="statResolved">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                        <span class="material-icons text-green-400">check_circle</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex space-x-2 mb-6 border-b border-white/10 pb-2">
+            <button
+                class="tab-btn active px-4 py-2 text-sm font-medium rounded-lg transition bg-primary-600/20 text-white"
+                data-tab="issues">
+                <span class="material-icons text-sm mr-1 align-middle">list_alt</span> Issues
+            </button>
+            <button class="tab-btn px-4 py-2 text-sm font-medium rounded-lg transition text-gray-400 hover:text-white"
+                data-tab="analytics">
+                <span class="material-icons text-sm mr-1 align-middle">analytics</span> Analytics
+            </button>
+        </div>
+
+        <!-- Issues Tab -->
+        <div id="issuesTab" class="tab-content">
+            <!-- Filters -->
+            <div class="glass-card p-4 mb-6">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex-1 min-w-[200px]">
+                        <select id="filterStatus" class="input-field text-sm">
+                            <option value="">All Statuses</option>
+                            <option value="SUBMITTED">Submitted</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="RESOLVED">Resolved</option>
+                            <option value="REJECTED">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[200px]">
+                        <select id="filterCategory" class="input-field text-sm">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-[200px]">
+                        <select id="filterWard" class="input-field text-sm">
+                            <option value="">All Wards</option>
+                        </select>
+                    </div>
+                    <button onclick="loadIssues()"
+                        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 transition flex items-center">
+                        <span class="material-icons text-sm mr-1">filter_list</span> Apply
+                    </button>
+                    <button onclick="resetFilters()"
+                        class="px-4 py-2 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 transition">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Grid -->
+            <div class="grid lg:grid-cols-2 gap-6">
+                <!-- Map -->
+                <div class="glass-card p-4">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <span class="material-icons mr-2 text-primary-400">map</span>
+                        Issue Map
+                    </h3>
+                    <div id="adminMap" class="h-[500px] rounded-xl overflow-hidden relative bg-slate-800"
+                        style="height: 500px;">
+                        <div class="absolute inset-0 flex items-center justify-center text-gray-500">Loading Map...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issues List -->
+                <div class="glass-card p-4">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center justify-between">
+                        <span>
+                            <span class="material-icons mr-2 text-primary-400 align-middle">list_alt</span>
+                            Recent Issues
+                        </span>
+                        <span class="text-sm font-normal text-gray-400" id="issueCount">0 issues</span>
+                    </h3>
+                    <div id="issuesList" class="space-y-3 max-h-[480px] overflow-y-auto pr-2">
+                        <!-- Issues loaded here -->
+                    </div>
+                </div>
+            </div><!-- End Issues Tab -->
+
+            <!-- Analytics Tab -->
+            <div id="analyticsTab" class="tab-content hidden">
+                <!-- Analytics Stats Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="glass-card p-4">
+                        <p class="text-gray-400 text-xs mb-1">Resolved This Month</p>
+                        <p class="text-2xl font-bold text-green-400" id="analyticsResolvedMonth">0</p>
+                    </div>
+                    <div class="glass-card p-4">
+                        <p class="text-gray-400 text-xs mb-1">New This Week</p>
+                        <p class="text-2xl font-bold text-blue-400" id="analyticsNewWeek">0</p>
+                    </div>
+                    <div class="glass-card p-4">
+                        <p class="text-gray-400 text-xs mb-1">Avg Resolution (hrs)</p>
+                        <p class="text-2xl font-bold text-yellow-400" id="analyticsAvgResolution">0</p>
+                    </div>
+                    <div class="glass-card p-4">
+                        <p class="text-gray-400 text-xs mb-1">Resolution Rate</p>
+                        <p class="text-2xl font-bold text-purple-400" id="analyticsResolutionRate">0%</p>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid lg:grid-cols-2 gap-6 mb-6">
+                    <div class="glass-card p-4">
+                        <h3 class="text-lg font-semibold text-white mb-4">
+                            <span class="material-icons mr-2 text-primary-400 align-middle">trending_up</span>
+                            Issue Trends (Last 30 Days)
+                        </h3>
+                        <div class="h-64"><canvas id="trendsChart"></canvas></div>
+                    </div>
+                    <div class="glass-card p-4">
+                        <h3 class="text-lg font-semibold text-white mb-4">
+                            <span class="material-icons mr-2 text-primary-400 align-middle">pie_chart</span>
+                            Issues by Category
+                        </h3>
+                        <div class="h-64"><canvas id="categoryChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-6">
+                    <div class="glass-card p-4">
+                        <h3 class="text-lg font-semibold text-white mb-4">
+                            <span class="material-icons mr-2 text-primary-400 align-middle">schedule</span>
+                            Avg Resolution Time (Hours)
+                        </h3>
+                        <div class="h-64"><canvas id="resolutionChart"></canvas></div>
+                    </div>
+                    <div class="glass-card p-4">
+                        <h3 class="text-lg font-semibold text-white mb-4">
+                            <span class="material-icons mr-2 text-primary-400 align-middle">donut_small</span>
+                            Issues by Status
+                        </h3>
+                        <div class="h-64"><canvas id="statusChart"></canvas></div>
+                    </div>
+                </div>
+            </div><!-- End Analytics Tab -->
+    </main>
+
+    <!-- Issue Detail Modal -->
+    <div id="issueModal" class="modal-overlay">
+        <div class="modal-content max-w-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white">Issue Details</h2>
+                <button onclick="closeIssueModal()" class="text-gray-400 hover:text-white">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+
+            <div id="issueModalContent">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/websocket.js"></script>
+
+
+    <script>
+        // Initial checks
+        if (!GeoReport.requireAdmin()) {
+            // Redirected
+        }
+
+        let adminMap;
+        let issues = [];
+        let categories = [];
+        let currentIssue = null;
+
+        async function initAdminDashboard() {
+            // Set user name
+            const user = GeoReport.getCurrentUser();
+            if (user) {
+                document.getElementById('userName').textContent = user.fullName;
+            }
+
+            // Initialize map
+            adminMap = new MapManager('adminMap');
+            adminMap.init();
+
+            // Force map resize
+            setTimeout(() => {
+                if (adminMap) adminMap.invalidateSize();
+            }, 500);
+
+            // Load data
+            await loadCategories();
+            await loadStats();
+            await loadWards();
+            await loadIssues();
+
+            // Load notifications
+            loadNotifications();
+
+            // Connect WebSocket
+            connectWebSocket();
+
+            // Setup event listeners
+            setupEventListeners();
+        }
+
+        async function loadStats() {
+            try {
+                const result = await GeoReport.apiRequest('/api/admin/stats');
+                if (result.success) {
+                    const data = result.data;
+                    animateNumber('statTotal', data.totalIssues);
+                    animateNumber('statSubmitted', data.submittedCount);
+                    animateNumber('statInProgress', data.inProgressCount);
+                    animateNumber('statResolved', data.resolvedCount);
+                }
+            } catch (e) {
+                console.error('Error loading stats:', e);
+            }
+        }
+
+        async function loadCategories() {
+            try {
+                const result = await GeoReport.apiRequest('/api/categories');
+                if (result.success) {
+                    categories = result.data;
+                    const select = document.getElementById('filterCategory');
+                    categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (e) {
+                console.error('Error loading categories:', e);
+            }
+        }
+
+        async function loadWards() {
+            try {
+                const result = await GeoReport.apiRequest('/api/admin/wards');
+                if (result.success) {
+                    const select = document.getElementById('filterWard');
+                    result.data.forEach(ward => {
+                        const option = document.createElement('option');
+                        option.value = ward;
+                        option.textContent = ward;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (e) {
+                console.error('Error loading wards:', e);
+            }
+        }
+
+        async function loadIssues() {
+            try {
+                const status = document.getElementById('filterStatus').value;
+                const categoryId = document.getElementById('filterCategory').value;
+                const ward = document.getElementById('filterWard').value;
+
+                let url = '/api/admin/issues?size=50';
+                if (status) url += `&status=${status}`;
+                if (categoryId) url += `&categoryId=${categoryId}`;
+                if (ward) url += `&ward=${encodeURIComponent(ward)}`;
+
+                const result = await GeoReport.apiRequest(url);
+                if (result.success) {
+                    issues = result.data.content;
+                    document.getElementById('issueCount').textContent = `${issues.length} issues`;
+                    renderIssuesOnMap();
+                    renderIssuesList();
+                }
+            } catch (e) {
+                console.error('Error loading issues:', e);
+            }
+        }
+
+        function renderIssuesOnMap() {
+            adminMap.addIssueMarkers(issues, (issue) => {
+                openIssueModal(issue);
+            });
+            if (issues.length > 0) {
+                adminMap.fitToMarkers();
+            }
+        }
+
+        function renderIssuesList() {
+            const container = document.getElementById('issuesList');
+
+            if (issues.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-400">
+                        <span class="material-icons text-5xl mb-4">inbox</span>
+                        <p>No issues found with current filters</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = issues.map(issue => `
+                <div class="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition cursor-pointer" data-issue-id="${issue.id}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="material-icons text-lg" style="color: ${issue.categoryColor}">${GeoReport.getCategoryIcon(issue.categoryIcon)}</span>
+                            <h4 class="font-medium text-white text-sm">${issue.title}</h4>
+                        </div>
+                        ${GeoReport.getStatusBadge(issue.status)}
+                    </div>
+                    <p class="text-gray-400 text-xs mb-2 line-clamp-1">${issue.description}</p>
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <div class="flex items-center space-x-2">
+                            <span>${issue.categoryName}</span>
+                            ${issue.department ? `<span>•</span><span class="px-1.5 py-0.5 rounded bg-primary-600/20 text-primary-400 border border-primary-500/30 font-medium">${issue.department}</span>` : ''}
+                        </div>
+                        <span>${GeoReport.formatRelativeTime(issue.createdAt)}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Add click handlers safely
+            container.querySelectorAll('[data-issue-id]').forEach(el => {
+                el.addEventListener('click', () => {
+                    const issue = issues.find(i => i.id == el.dataset.issueId);
+                    if (issue) openIssueModal(issue);
+                });
+            });
+        }
+
+        function openIssueModal(issue) {
+            currentIssue = issue;
+            const modal = document.getElementById('issueModal');
+            const content = document.getElementById('issueModalContent');
+
+            content.innerHTML = `
+                <div class="space-y-6">
+                    <!-- Header -->
+                    <div class="flex items-start space-x-4">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background-color: ${issue.categoryColor}20; border: 1px solid ${issue.categoryColor}">
+                            <span class="material-icons" style="color: ${issue.categoryColor}">${GeoReport.getCategoryIcon(issue.categoryIcon)}</span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-white">${issue.title}</h3>
+                            <div class="flex items-center space-x-2 mt-1 text-sm text-gray-400">
+                                <span>${issue.categoryName} • ${issue.ward || 'No ward'}</span>
+                                ${issue.department ? `<span>•</span><span class="px-2 py-0.5 rounded bg-primary-600/20 text-primary-400 border border-primary-500/30 font-medium text-xs">${issue.department}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="flex items-center space-x-4">
+                        ${GeoReport.getStatusBadge(issue.status)}
+                        <span class="text-gray-400 text-sm">Priority: ${GeoReport.getPriorityBadge(issue.priority)}</span>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-400 mb-2">Description</h4>
+                        <p class="text-gray-200">${issue.description}</p>
+                    </div>
+
+                    <!-- Location -->
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-400 mb-2">Location</h4>
+                        <p class="text-gray-200">${issue.address || 'No address provided'}</p>
+                        <p class="text-gray-400 text-sm">Lat: ${issue.latitude?.toFixed(6)}, Lng: ${issue.longitude?.toFixed(6)}</p>
+                    </div>
+
+                    <!-- Reporter -->
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-400 mb-2">Reporter</h4>
+                        <p class="text-gray-200">${issue.reporterName}</p>
+                        <p class="text-gray-400 text-sm"><span class="material-icons text-xs align-middle">email</span> ${issue.contactEmail || issue.reporterEmail}</p>
+                        ${issue.contactPhone ? `<p class="text-primary-400 font-semibold text-sm mt-1"><span class="material-icons text-xs align-middle">phone</span> ${issue.contactPhone}</p>` : ''}
+                    </div>
+
+                    <!-- Images -->
+                    ${issue.images && issue.images.length > 0 ? `
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-400 mb-2">Images</h4>
+                            <div class="flex flex-wrap gap-2">
+                                ${issue.images.map(img => `
+                                    <a href="${img.imageUrl}" target="_blank">
+                                        <img src="${img.imageUrl}" alt="Issue image" class="w-24 h-24 rounded-lg object-cover border border-white/10 hover:border-primary-500 transition">
+                                    </a>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Comments Section -->
+                    <div class="border-t border-white/10 pt-4">
+                        <h4 class="text-sm font-medium text-white mb-3 flex items-center">
+                            <span class="material-icons text-sm mr-1">chat</span>
+                            Comments & Updates
+                        </h4>
+                        <div id="adminCommentsContainer" class="space-y-3 max-h-32 overflow-y-auto mb-3">
+                            <div class="text-gray-500 text-sm text-center py-2">Loading comments...</div>
+                        </div>
+                        
+                        <!-- Add Comment Form -->
+                        <div class="flex space-x-2">
+                            <input type="text" id="adminCommentInput" placeholder="Reply to this issue..." 
+                                class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500">
+                            <button onclick="addAdminComment(${issue.id})" class="px-3 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition">
+                                <span class="material-icons text-sm">send</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dates -->
+                    <div class="text-sm text-gray-400 border-t border-white/10 pt-4">
+                        <p>Reported: ${GeoReport.formatDate(issue.createdAt)}</p>
+                        ${issue.resolvedAt ? `<p>Resolved: ${GeoReport.formatDate(issue.resolvedAt)}</p>` : ''}
+                    </div>
+
+                    <!-- Update Status Form -->
+                    <div class="border-t border-white/10 pt-6">
+                        <h4 class="text-sm font-medium text-white mb-4">Update Status</h4>
+                        <form onsubmit="updateStatus(event)" class="space-y-4">
+                            <div>
+                                <select id="newStatus" class="input-field" required>
+                                    <option value="SUBMITTED" ${issue.status === 'SUBMITTED' ? 'selected' : ''}>Submitted</option>
+                                    <option value="IN_PROGRESS" ${issue.status === 'IN_PROGRESS' ? 'selected' : ''}>In Progress</option>
+                                    <option value="RESOLVED" ${issue.status === 'RESOLVED' ? 'selected' : ''}>Resolved</option>
+                                    <option value="REJECTED" ${issue.status === 'REJECTED' ? 'selected' : ''}>Rejected</option>
+                                </select>
+                            </div>
+                            <div>
+                                <textarea id="statusNotes" class="input-field resize-none" rows="2" placeholder="Add notes (required for resolved/rejected)"></textarea>
+                            </div>
+                            <div class="flex justify-end space-x-3">
+                                <button type="button" onclick="closeIssueModal()" class="px-4 py-2 bg-white/5 text-white rounded-lg hover:bg-white/10 transition">
+                                    Cancel
+                                </button>
+                                <button type="submit" id="updateStatusBtn" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 transition flex items-center">
+                                    <span class="material-icons text-sm mr-1">save</span>
+                                    Update Status
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+            // Load comments for this issue
+            loadAdminIssueComments(issue.id);
+
+            modal.classList.add('open');
+        }
+
+        // Load comments for admin modal
+        async function loadAdminIssueComments(issueId) {
+            const container = document.getElementById('adminCommentsContainer');
+            try {
+                const result = await GeoReport.apiRequest(`/api/issues/${issueId}/comments`);
+                if (result.success && result.data.length > 0) {
+                    container.innerHTML = result.data.map(comment => renderAdminComment(comment)).join('');
+                } else {
+                    container.innerHTML = '<div class="text-gray-500 text-sm text-center py-2">No comments yet</div>';
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="text-red-400 text-sm text-center py-2">Failed to load comments</div>';
+            }
+        }
+
+        // Render comment for admin view
+        function renderAdminComment(comment, isReply = false) {
+            const repliesHtml = comment.replies && comment.replies.length > 0
+                ? comment.replies.map(r => renderAdminComment(r, true)).join('')
+                : '';
+
+            return `
+                <div class="${isReply ? 'ml-4 pl-2 border-l border-white/10' : ''} pb-2">
+                    <div class="flex items-start space-x-2">
+                        <div class="w-5 h-5 rounded-full ${comment.isAdminReply ? 'bg-green-600' : 'bg-primary-600'} flex items-center justify-center flex-shrink-0">
+                            <span class="material-icons text-white" style="font-size: 10px">${comment.isAdminReply ? 'admin_panel_settings' : 'person'}</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs font-medium ${comment.isAdminReply ? 'text-green-400' : 'text-white'}">${comment.authorName}</span>
+                                ${comment.isAdminReply ? '<span class="text-xs bg-green-600/20 text-green-400 px-1 rounded">Admin</span>' : ''}
+                                <span class="text-xs text-gray-500">${GeoReport.formatRelativeTime(comment.createdAt)}</span>
+                            </div>
+                            <p class="text-xs text-gray-300 mt-0.5">${comment.content}</p>
+                        </div>
+                    </div>
+                    ${repliesHtml}
+                </div>
+            `;
+        }
+
+        // Add admin comment
+        async function addAdminComment(issueId) {
+            const input = document.getElementById('adminCommentInput');
+            const content = input.value.trim();
+
+            if (!content) {
+                showToast('Please enter a comment', 'error');
+                return;
+            }
+
+            try {
+                const result = await GeoReport.apiRequest(`/api/issues/${issueId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+
+                if (result.success) {
+                    input.value = '';
+                    loadAdminIssueComments(issueId);
+                    showToast('Response sent!', 'success');
+                } else {
+                    showToast(result.message || 'Failed to add comment', 'error');
+                }
+            } catch (e) {
+                showToast('Error adding comment', 'error');
+            }
+        }
+
+        function closeIssueModal() {
+            document.getElementById('issueModal').classList.remove('open');
+            currentIssue = null;
+        }
+
+        async function updateStatus(e) {
+            e.preventDefault();
+
+            if (!currentIssue) return;
+
+            const newStatus = document.getElementById('newStatus').value;
+            const notes = document.getElementById('statusNotes').value;
+
+            // Require notes for resolved/rejected
+            if ((newStatus === 'RESOLVED' || newStatus === 'REJECTED') && !notes) {
+                showToast('Please add notes for this status change', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('updateStatusBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner w-4 h-4"></div> Updating...';
+
+            try {
+                const result = await GeoReport.apiRequest(`/api/admin/issues/${currentIssue.id}/status`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        status: newStatus,
+                        notes: notes
+                    })
+                });
+
+                if (result.success) {
+                    showToast('Status updated successfully', 'success');
+                    closeIssueModal();
+                    loadStats();
+                    loadIssues();
+                } else {
+                    throw new Error(result.message || 'Failed to update status');
+                }
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons text-sm mr-1">save</span> Update Status';
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterCategory').value = '';
+            document.getElementById('filterWard').value = '';
+            loadIssues();
+        }
+
+        function connectWebSocket() {
+            window.wsClient.connect(
+                () => {
+                    console.log('WebSocket connected');
+
+                    // Subscribe to issue updates
+                    window.wsClient.subscribeToIssues((data) => {
+                        console.log('WebSocket message:', data);
+                        if (data.eventType === 'NEW_ISSUE' || data.eventType === 'STATUS_UPDATE') {
+                            // Reload data
+                            loadStats();
+                            loadIssues();
+
+                            if (data.eventType === 'NEW_ISSUE') {
+                                showToast(`New issue reported: ${data.issue.title}`, 'success');
+                            }
+                        }
+                    });
+
+                    // Subscribe to personal notifications
+                    const user = GeoReport.getCurrentUser();
+                    if (user) {
+                        window.wsClient.subscribeToNotifications(user.id, (data) => {
+                            showToast(data.title, 'success');
+                            loadNotifications();
+                        });
+                    }
+                },
+                (error) => {
+                    console.error('WebSocket error:', error);
+                }
+            );
+        }
+
+        async function loadNotifications() {
+            try {
+                const result = await GeoReport.apiRequest('/api/notifications/count');
+                const badge = document.getElementById('notifBadge');
+                if (result.success && result.data.unreadCount > 0) {
+                    badge.textContent = result.data.unreadCount;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } catch (e) {
+                console.error('Error loading notifications:', e);
+            }
+        }
+
+        async function toggleNotifications() {
+            const dropdown = document.getElementById('notifDropdown');
+            const isHidden = dropdown.classList.contains('hidden');
+
+            // Close other menus
+            document.getElementById('userMenu').classList.add('hidden');
+
+            if (isHidden) {
+                dropdown.classList.remove('hidden');
+                await loadNotificationsList();
+            } else {
+                dropdown.classList.add('hidden');
+            }
+        }
+
+        async function loadNotificationsList() {
+            const container = document.getElementById('notifList');
+            try {
+                const result = await GeoReport.apiRequest('/api/notifications');
+                if (result.success && result.data.length > 0) {
+                    container.innerHTML = result.data.map(notif => `
+                        <div class="notif-item ${notif.read ? '' : 'unread'}" onclick="markNotificationAsRead(${notif.id})">
+                            <div class="notif-icon">
+                                <span class="material-icons text-primary-500 text-sm">
+                                    ${notif.type === 'STATUS_CHANGE' ? 'track_changes' : 'chat'}
+                                </span>
+                            </div>
+                            <div class="notif-content">
+                                <div class="notif-title">${notif.title}</div>
+                                <div class="notif-message">${notif.message}</div>
+                                <div class="notif-time">${GeoReport.formatRelativeTime(notif.createdAt)}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="text-center py-8 text-gray-500 text-sm">No notifications yet</div>';
+                }
+            } catch (e) {
+                container.innerHTML = '<div class="text-center py-8 text-red-400 text-sm">Failed to load notifications</div>';
+            }
+        }
+
+        async function markNotificationAsRead(id) {
+            try {
+                const result = await GeoReport.apiRequest(`/api/notifications/${id}/read`, { method: 'PUT' });
+                if (result.success) {
+                    loadNotifications();
+                    loadNotificationsList();
+                }
+            } catch (e) {
+                console.error('Error marking notification as read:', e);
+            }
+        }
+
+        async function markAllNotificationsAsRead() {
+            try {
+                const result = await GeoReport.apiRequest('/api/notifications/read-all', { method: 'PUT' });
+                if (result.success) {
+                    loadNotifications();
+                    loadNotificationsList();
+                }
+            } catch (e) {
+                console.error('Error marking all notifications as read:', e);
+            }
+        }
+
+        function setupEventListeners() {
+            // Notifications toggle
+            document.getElementById('notifBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleNotifications();
+            });
+
+            // User menu toggle
+            document.getElementById('userMenuBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('notifDropdown').classList.add('hidden');
+                document.getElementById('userMenu').classList.toggle('hidden');
+            });
+
+            // Close menu on outside click
+            document.addEventListener('click', (e) => {
+                document.getElementById('notifDropdown').classList.add('hidden');
+                const menu = document.getElementById('userMenu');
+                const btn = document.getElementById('userMenuBtn');
+                if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+
+            // Tab switching
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => {
+                        b.classList.remove('active', 'bg-primary-600/20', 'text-white');
+                        b.classList.add('text-gray-400');
+                    });
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+
+                    btn.classList.add('active', 'bg-primary-600/20', 'text-white');
+                    btn.classList.remove('text-gray-400');
+                    const tab = btn.dataset.tab;
+                    document.getElementById(tab + 'Tab').classList.remove('hidden');
+
+                    if (tab === 'analytics' && !window.analyticsLoaded) {
+                        loadAnalytics();
+                    }
+                    if (tab === 'issues') {
+                        setTimeout(() => adminMap.invalidateSize(), 100);
+                    }
+                });
+            });
+        }
+
+        // Analytics Charts
+        let trendsChart, categoryChart, resolutionChart, statusChart;
+
+        async function loadAnalytics() {
+            try {
+                const result = await GeoReport.apiRequest('/api/admin/analytics');
+                if (result.success) {
+                    const data = result.data;
+
+                    // Update stats
+                    if (data.overall) {
+                        document.getElementById('analyticsResolvedMonth').textContent = data.overall.resolvedThisMonth || 0;
+                        document.getElementById('analyticsNewWeek').textContent = data.overall.newThisWeek || 0;
+                        document.getElementById('analyticsAvgResolution').textContent = data.overall.avgResolutionTimeHours || 0;
+                        document.getElementById('analyticsResolutionRate').textContent = (data.overall.resolutionRate || 0) + '%';
+                    }
+
+                    // Render charts
+                    renderTrendsChart(data.issueTrends || {});
+                    renderCategoryChart(data.byCategory || {});
+                    renderResolutionChart(data.avgResolutionTimeByCategory || {});
+                    renderStatusChart(data.byStatus || {});
+
+                    window.analyticsLoaded = true;
+                }
+            } catch (e) {
+                console.error('Error loading analytics:', e);
+                showToast('Failed to load analytics', 'error');
+            }
+        }
+
+        function renderTrendsChart(data) {
+            const ctx = document.getElementById('trendsChart').getContext('2d');
+            if (trendsChart) trendsChart.destroy();
+
+            const labels = Object.keys(data).slice(-14); // Last 14 days
+            const values = labels.map(l => data[l] || 0);
+
+            trendsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.map(d => d.slice(5)), // MM-DD
+                    datasets: [{
+                        label: 'Issues',
+                        data: values,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                        x: { ticks: { color: '#9ca3af' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderCategoryChart(data) {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            if (categoryChart) categoryChart.destroy();
+
+            const labels = Object.keys(data);
+            const values = Object.values(data);
+            const colors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
+
+            categoryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: values, backgroundColor: colors.slice(0, labels.length) }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { color: '#9ca3af' } } }
+                }
+            });
+        }
+
+        function renderResolutionChart(data) {
+            const ctx = document.getElementById('resolutionChart').getContext('2d');
+            if (resolutionChart) resolutionChart.destroy();
+
+            const labels = Object.keys(data);
+            const values = Object.values(data).map(v => Math.round(v * 10) / 10);
+
+            resolutionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'Hours', data: values, backgroundColor: '#f59e0b' }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                        x: { ticks: { color: '#9ca3af' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderStatusChart(data) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            if (statusChart) statusChart.destroy();
+
+            const statusColors = {
+                'SUBMITTED': '#818cf8', 'IN_PROGRESS': '#fbbf24',
+                'RESOLVED': '#22c55e', 'REJECTED': '#ef4444'
+            };
+            const labels = Object.keys(data);
+            const values = Object.values(data);
+            const colors = labels.map(l => statusColors[l] || '#6366f1');
+
+            statusChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels.map(l => l.replace('_', ' ')),
+                    datasets: [{ data: values, backgroundColor: colors }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#9ca3af' } } }
+                }
+            });
+        }
+
+        function animateNumber(elementId, target) {
+            const element = document.getElementById(elementId);
+            const duration = 1000;
+            const start = parseInt(element.textContent) || 0;
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const current = Math.floor(start + (target - start) * progress);
+                element.textContent = current;
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            requestAnimationFrame(update);
+        }
+
+
+        // Start the dashboard
+        initAdminDashboard();
+    </script>
+</body>
+
+</html>

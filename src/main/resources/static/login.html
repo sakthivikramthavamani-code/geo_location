@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Login to GeoReport - Public Issue Reporting System">
+    <title>Login - GeoReport</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: { 500: '#eab308', 600: '#ca8a04', 700: '#a16207' },
+                        accent: { 400: '#facc15', 500: '#eab308' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body
+    class="font-sans bg-gradient-to-br from-black via-zinc-900 to-black min-h-screen flex items-center justify-center p-4">
+    <!-- Background Effects -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="relative w-full max-w-md">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <a href="/" class="inline-flex items-center space-x-2">
+                <span class="material-icons text-primary-500 text-4xl">location_city</span>
+                <span class="text-2xl font-bold text-white">GeoReport</span>
+            </a>
+        </div>
+
+        <!-- Login Card -->
+        <div class="glass-card p-8">
+            <h2 class="text-2xl font-bold text-white text-center mb-2">Welcome Back</h2>
+            <p class="text-gray-400 text-center mb-8">Sign in to continue reporting issues</p>
+
+            <form id="loginForm" class="space-y-6">
+                <!-- Email -->
+                <div>
+                    <label class="form-label">Email Address</label>
+                    <div class="relative">
+                        <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">email</span>
+                        <input type="email" id="email" name="email" required class="input-field pl-10"
+                            placeholder="you@example.com">
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label class="form-label">Password</label>
+                    <div class="relative">
+                        <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">lock</span>
+                        <input type="password" id="password" name="password" required class="input-field pl-10 pr-10"
+                            placeholder="••••••••">
+                        <button type="button" onclick="togglePassword()"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
+                            <span class="material-icons" id="passwordToggle">visibility</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Remember & Forgot -->
+                <div class="flex items-center justify-between text-sm">
+                    <label class="flex items-center text-gray-400 cursor-pointer">
+                        <input type="checkbox" id="rememberMe"
+                            class="mr-2 rounded border-gray-600 bg-transparent text-primary-500 focus:ring-primary-500">
+                        Remember me
+                    </label>
+                    <a href="javascript:void(0)"
+                        onclick="GeoReport.showToast('Please contact your administrator to reset password', 'info')"
+                        class="text-primary-400 hover:text-primary-300 transition">Forgot password?</a>
+                </div>
+
+                <!-- Error Message -->
+                <div id="errorMessage"
+                    class="hidden p-4 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-sm"></div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="submitBtn"
+                    class="w-full py-3 px-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-black font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary-500/20">
+                    <span class="material-icons">login</span>
+                    Sign In
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="relative my-8">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-white/10"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-4 bg-transparent text-gray-500">Don't have an account?</span>
+                </div>
+            </div>
+
+            <!-- Register Link -->
+            <a href="/register.html"
+                class="w-full py-3 px-4 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 border border-white/10">
+                <span class="material-icons">person_add</span>
+                Create Account
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-center text-gray-500 text-sm mt-8">
+            &copy; <span id="currentYear"></span> GeoReport. Built for Smart Cities.
+        </p>
+        <script>document.getElementById('currentYear').textContent = new Date().getFullYear();</script>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast" class="toast"></div>
+
+    <script src="js/app.js"></script>
+    <script>
+        function togglePassword() {
+            const input = document.getElementById('password');
+            const toggle = document.getElementById('passwordToggle');
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggle.textContent = 'visibility_off';
+            } else {
+                input.type = 'password';
+                toggle.textContent = 'visibility';
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const errorDiv = document.getElementById('errorMessage');
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner w-5 h-5"></div> Signing in...';
+            errorDiv.classList.add('hidden');
+
+            const data = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                rememberMe: document.getElementById('rememberMe').checked
+            };
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Store auth data
+                    localStorage.setItem('token', result.data.token);
+                    localStorage.setItem('user', JSON.stringify({
+                        id: result.data.userId,
+                        email: result.data.email,
+                        fullName: result.data.fullName,
+                        roles: result.data.roles
+                    }));
+
+                    showToast('Login successful!', 'success');
+
+                    // Redirect based on role
+                    setTimeout(() => {
+                        if (result.data.roles.includes('ROLE_ADMIN')) {
+                            window.location.href = '/admin-dashboard.html';
+                        } else {
+                            window.location.href = '/citizen-dashboard.html';
+                        }
+                    }, 1000);
+                } else {
+                    throw new Error(result.message || 'Login failed');
+                }
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span class="material-icons">login</span> Sign In';
+            }
+        });
+
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+
+            if (token && userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+
+                    // Show logged in state
+                    const container = document.getElementById('loginContainer');
+                    const loggedInDiv = document.createElement('div');
+                    loggedInDiv.className = 'glass-card p-8 text-center animate-fade-in';
+                    loggedInDiv.innerHTML = `
+                        <div class="w-20 h-20 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary-500/30">
+                            <span class="material-icons text-4xl text-white">person</span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white mb-2">Welcome Back!</h2>
+                        <p class="text-gray-300 mb-6">You are already logged in as <br><span class="text-white font-semibold text-lg">${user.fullName}</span></p>
+                        
+                        <div class="space-y-4">
+                            <a href="${user.roles.includes('ROLE_ADMIN') ? '/admin-dashboard.html' : '/citizen-dashboard.html'}" 
+                               class="w-full py-3 px-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary-500/30">
+                                <span class="material-icons">dashboard</span>
+                                Continue to Dashboard
+                            </a>
+                            
+                            <button onclick="GeoReport.logout()" 
+                                class="w-full py-3 px-4 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 border border-white/10">
+                                <span class="material-icons">logout</span>
+                                Logout / Switch Account
+                            </button>
+                        </div>
+                    `;
+
+                    // Check if there is already a glass-card to replace or append
+                    // The original HTML structure has a .glass-card inside .relative.w-full.max-w-md
+                    // Let's replace the content of that glass card instead of creating a new one if possible, 
+                    // or just hide the original and append this one to the parent.
+
+                    const loginCard = document.querySelector('.glass-card');
+                    if (loginCard) {
+                        loginCard.innerHTML = loggedInDiv.innerHTML;
+                    }
+                } catch (e) {
+                    console.error('Error parsing user data:', e);
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

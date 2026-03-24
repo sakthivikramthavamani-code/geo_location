@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCity Flow - Complaint Routing System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-container">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="brand">
+            <h2>SmartCity<span>Flow</span></h2>
+            <p>Complaint Routing System</p>
+        </div>
+        <nav>
+            <button class="nav-btn active" data-view="submit-view">
+                <span class="icon">📝</span> Submit Complaint
+            </button>
+            <div class="nav-divider">Departments</div>
+            <button class="nav-btn" data-view="dashboard-road">
+                <span class="icon">🛣️</span> Road Dept
+            </button>
+            <button class="nav-btn" data-view="dashboard-water">
+                <span class="icon">💧</span> Water Dept
+            </button>
+            <button class="nav-btn" data-view="dashboard-sanitation">
+                <span class="icon">🗑️</span> Sanitation Dept
+            </button>
+            <button class="nav-btn" data-view="dashboard-electricity">
+                <span class="icon">💡</span> Electricity Dept
+            </button>
+            <button class="nav-btn" data-view="dashboard-traffic">
+                <span class="icon">🚦</span> Traffic Dept
+            </button>
+            <button class="nav-btn" data-view="dashboard-publicworks">
+                <span class="icon">🏛️</span> Public Works Dept
+            </button>
+            <button class="nav-btn" data-view="dashboard-general">
+                <span class="icon">📋</span> General Admin
+            </button>
+        </nav>
+        <div class="sidebar-stats" id="sidebarStats"></div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Submit View -->
+        <section id="submit-view" class="view-section active">
+            <div class="header">
+                <h1>Report a Civic Issue</h1>
+                <p>Your complaint will be automatically routed to the correct department.</p>
+            </div>
+            <div class="card form-card">
+                <form id="complaintForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="issueType">Issue Category</label>
+                            <select id="issueType" required>
+                                <option value="" disabled selected>Select a category</option>
+                                <option value="Road Damage">🛣️ Road Damage (Potholes, Cracks)</option>
+                                <option value="Water Leakage">💧 Water Leakage (Pipeline, Overflow)</option>
+                                <option value="Garbage Overflow">🗑️ Garbage Overflow (Bins, Waste)</option>
+                                <option value="Street Light">💡 Street Light (Non-functional)</option>
+                                <option value="Sanitation">🚿 Sanitation (Drainage, Sewage)</option>
+                                <option value="Traffic">🚦 Traffic (Signals, Road Signs)</option>
+                                <option value="Public Property">🏛️ Public Property (Parks, Buildings)</option>
+                                <option value="Other">📋 Other (General Civic Issue)</option>
+                            </select>
+                            <div class="routing-badge" id="routingBadge"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="priority">Priority Level</label>
+                            <select id="priority" required>
+                                <option value="Low">🟢 Low</option>
+                                <option value="Medium" selected>🟡 Medium</option>
+                                <option value="High">🔴 High</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" placeholder="e.g., 12 Gandhi Road, near City Hospital" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" rows="4" placeholder="Describe the issue in detail..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="image">Attach Image (Optional)</label>
+                        <input type="file" id="image" accept="image/*">
+                    </div>
+                    <button type="submit" class="btn-primary">🚀 Submit Complaint</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Road Department Dashboard -->
+        <section id="dashboard-road" class="view-section" data-department="Road Department">
+            <div class="header dept-header" style="--dept-color: #e74c3c;">
+                <div class="dept-title-row">
+                    <span class="dept-icon">🛣️</span>
+                    <div>
+                        <h1>Road Department Dashboard</h1>
+                        <p>Managing road damage, potholes and surface repairs.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <label>Filter by Status:</label>
+                    <select class="status-filter">
+                        <option value="All">All</option><option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option><option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="stat-counts" id="stats-road"></div>
+            </div>
+            <div class="complaints-grid" id="grid-road"></div>
+        </section>
+
+        <!-- Water Department Dashboard -->
+        <section id="dashboard-water" class="view-section" data-department="Water Department">
+            <div class="header dept-header" style="--dept-color: #3498db;">
+                <div class="dept-title-row">
+                    <span class="dept-icon">💧</span>
+                    <div>
+                        <h1>Water Department Dashboard</h1>
+                        <p>Managing pipeline leaks, water overflow and supply issues.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <label>Filter by Status:</label>
+                    <select class="status-filter">
+                        <option value="All">All</option><option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option><option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="stat-counts" id="stats-water"></div>
+            </div>
+            <div class="complaints-grid" id="grid-water"></div>
+        </section>
+
+        <!-- Sanitation Department Dashboard -->
+        <section id="dashboard-sanitation" class="view-section" data-department="Sanitation Department">
+            <div class="header dept-header" style="--dept-color: #27ae60;">
+                <div class="dept-title-row">
+                    <span class="dept-icon">🗑️</span>
+                    <div>
+                        <h1>Sanitation Department Dashboard</h1>
+                        <p>Managing garbage, drainage, sewage and public sanitation.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <label>Filter by Status:</label>
+                    <select class="status-filter">
+                        <option value="All">All</option><option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option><option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="stat-counts" id="stats-sanitation"></div>
+            </div>
+            <div class="complaints-grid" id="grid-sanitation"></div>
+        </section>
+
+        <!-- Electricity Department Dashboard -->
+        <section id="dashboard-electricity" class="view-section" data-department="Electricity Department">
+            <div class="header dept-header" style="--dept-color: #f39c12;">
+                <div class="dept-title-row">
+                    <span class="dept-icon">💡</span>
+                    <div>
+                        <h1>Electricity Department Dashboard</h1>
+                        <p>Managing street lights and power-related public complaints.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <label>Filter by Status:</label>
+                    <select class="status-filter">
+                        <option value="All">All</option><option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option><option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="stat-counts" id="stats-electricity"></div>
+            </div>
+            <div class="complaints-grid" id="grid-electricity"></div>
+        </section>
+
+        <!-- Traffic Department Dashboard -->
+        <section id="dashboard-traffic" class="view-section" data-department="Traffic Department">
+            <div class="header dept-header" style="--dept-color: #e67e22;">
+                <div class="dept-title-row">
+                    <span class="dept-icon">🚦</span>
+                    <div>
+                        <h1>Traffic Department Dashboard</h1>
+                        <p>Managing traffic signals, road signs and markings.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <label>Filter by Status:</label>
+                    <select class="status-filter">
+                        <option value="All">All</option><option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option><option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="stat-counts" id="stats-traffic"></div>
+            </div>
+            <div class="complaints-grid" id="grid-traffic"></div>
+        </section>
+
+        <!-- Public Works Department Dashboard -->
+        <section id="dashboard-publicworks" class="view-section" data-department="Public Works Department">
+            <div class="header dept-header" style="--dept-color: #1abc9c;">
+                <div class="dept-title-row">
+                    <span class="dept-icon">🏛️</span>
+                    <div>
+                        <h1>Public Works Department Dashboard</h1>
+                        <p>Managing parks, benches, public buildings and civic infrastructure.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <label>Filter by Status:</label>
+                    <select class="status-filter">
+                        <option value="All">All</option><option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option><option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="stat-counts" id="stats-publicworks"></div>
+            </div>
+            <div class="complaints-grid" id="grid-publicworks"></div>
+        </section>
+
+        <!-- General Administration Dashboard -->
+        <section id="dashboard-general" class="view-section" data-department="General Administration">
+            <div class="header dept-header" style="--dept-color: #95a5a6;">
+                <div class="dept-title-row">
+                    <span class="dept-icon">📋</span>
+                    <div>
+                        <h1>General Administration Dashboard</h1>
+                        <p>Managing miscellaneous and unclassified civic issues.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-controls">
+                <div class="filter-group">
+                    <label>Filter by Status:</label>
+                    <select class="status-filter">
+                        <option value="All">All</option><option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option><option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="stat-counts" id="stats-general"></div>
+            </div>
+            <div class="complaints-grid" id="grid-general"></div>
+        </section>
+
+    </main>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

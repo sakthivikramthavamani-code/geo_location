@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "GeoReport Application",
+            "request": "launch",
+            "mainClass": "com.georeport.GeoReportApplication",
+            "projectName": "geo-issue-reporter",
+            "vmArgs": "-Dspring.profiles.active=default"
+        },
+        {
+            "type": "java",
+            "name": "GeoReport (Debug)",
+            "request": "launch",
+            "mainClass": "com.georeport.GeoReportApplication",
+            "projectName": "geo-issue-reporter",
+            "vmArgs": "-Dspring.profiles.active=default -Xdebug"
+        }
+    ]
+}
