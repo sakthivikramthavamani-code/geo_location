@@ -1,3 +1,11 @@
+---
+title: Geo Location
+emoji: 🌍
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
 # Geo-Based Public Issue Reporting System
 
 A real-time, location-aware civic issue reporting platform built with Java Spring Boot and vanilla JavaScript.
