@@ -27,7 +27,6 @@ public class GeoReportApplication {
         SpringApplication.run(GeoReportApplication.class, args);
         System.out.println("==============================================");
         System.out.println("  Geo-Based Issue Reporting System Started!");
-        System.out.println("  Access at: http://localhost:8081");
         System.out.println("==============================================");
     }
 }

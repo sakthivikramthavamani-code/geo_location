@@ -52,7 +52,6 @@ public class DataInitializer {
 
                         System.out.println("==============================================");
                         System.out.println("  Geo-Based Issue Reporting System Started!");
-                        System.out.println("  Access at: http://localhost:8080");
                         System.out.println("==============================================");
                         System.out.println("  Database: MySQL (georeport_db)");
                         System.out.println("  Mode: Production");
