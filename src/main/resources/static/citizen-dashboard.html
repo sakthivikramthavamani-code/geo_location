@@ -320,9 +320,6 @@
         // Initial checks
         if (!GeoReport.requireAuth()) {
             // Redirected to login
-        } else if (GeoReport.isAdmin()) {
-            // Redirect admins to admin dashboard
-            window.location.href = '/admin-dashboard.html';
         }
 
         let mainMap, pickerMap;
