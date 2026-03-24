@@ -50,7 +50,7 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:disabled}
+  secret: ${JWT_SECRET:this_is_a_disabled_fallback_key_that_is_long_enough_for_hs256}
   expiration: 86400000
 
 # File Storage Configuration
@@ -60,7 +60,7 @@ file:
 
 # Server Configuration
 server:
-  port: 8081
+  port: 8082
   servlet:
     context-path: /
 
