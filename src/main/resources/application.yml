@@ -91,3 +91,5 @@ logging:
     root: INFO
     com.georeport: INFO
     org.springframework.web: INFO
+
+# Trigger Rebuild
