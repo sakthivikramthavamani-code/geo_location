@@ -5,12 +5,11 @@ FROM maven:3.9.6-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
-# Copy pom.xml and download dependencies first (layer caching)
+# Copy pom.xml and source code
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
-
-# Copy source code and build
 COPY src ./src
+
+# Build the application directly (bypassing HF layer caching freeze bug)
 RUN mvn clean package -DskipTests -B
 
 # ====================================================
