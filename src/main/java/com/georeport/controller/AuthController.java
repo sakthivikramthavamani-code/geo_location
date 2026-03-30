@@ -40,6 +40,16 @@ public class AuthController {
     }
 
     /**
+     * Login user via Google Auth and return JWT token
+     * POST /api/auth/google-login
+     */
+    @PostMapping("/google-login")
+    public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        AuthResponse response = authService.googleLogin(request);
+        return ResponseEntity.ok(ApiResponse.success("Google Login successful", response));
+    }
+
+    /**
      * Verify JWT token validity
      * GET /api/auth/verify
      */

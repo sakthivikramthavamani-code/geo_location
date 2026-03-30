@@ -3,6 +3,7 @@ package com.georeport.service;
 import com.georeport.dto.AuthResponse;
 import com.georeport.dto.LoginRequest;
 import com.georeport.dto.RegisterRequest;
+import com.georeport.dto.GoogleLoginRequest;
 import com.georeport.entity.Role;
 import com.georeport.entity.RoleType;
 import com.georeport.entity.User;
@@ -126,6 +127,47 @@ public class AuthService {
 
                 // Generate token
                 String token = tokenProvider.generateToken(authentication);
+
+                return AuthResponse.of(
+                                token,
+                                user.getId(),
+                                user.getEmail(),
+                                user.getFullName(),
+                                user.getRoles().stream().map(r -> r.getName().name()).collect(Collectors.toList()),
+                                tokenProvider.getExpirationMs());
+        }
+
+        /**
+         * Authenticate user via Google and return JWT token.
+         * Auto-registers the user if they don't exist yet.
+         */
+        @Transactional
+        public AuthResponse googleLogin(GoogleLoginRequest request) {
+                // Find user by email or create new
+                User user = userRepository.findByEmail(request.getEmail())
+                                .orElseGet(() -> {
+                                        // Auto-register new Google user
+                                        Role citizenRole = roleRepository.findByName(RoleType.ROLE_CITIZEN)
+                                                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ROLE_CITIZEN"));
+                                        
+                                        User newUser = User.builder()
+                                                .email(request.getEmail())
+                                                .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString())) // Random password
+                                                .fullName(request.getFullName())
+                                                .isActive(true)
+                                                .emailVerified(true)
+                                                .build();
+                                        
+                                        newUser.getRoles().add(citizenRole);
+                                        return userRepository.save(newUser);
+                                });
+
+                // Update last login
+                user.setLastLogin(LocalDateTime.now());
+                userRepository.save(user);
+
+                // Generate token directly for the user's email
+                String token = tokenProvider.generateToken(user.getEmail());
 
                 return AuthResponse.of(
                                 token,

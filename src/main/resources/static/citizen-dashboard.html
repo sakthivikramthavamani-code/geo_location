@@ -247,15 +247,50 @@
                     </div>
                 </div>
 
-                <!-- Image Upload -->
+                <!-- Image Upload or Capture -->
                 <div>
-                    <label class="form-label">Upload Images (Optional)</label>
-                    <div id="uploadZone" class="upload-zone">
+                    <label class="form-label">Upload Images or Capture Photo (Optional)</label>
+                    
+                    <!-- Tabs for Upload vs Camera -->
+                    <div class="flex space-x-2 mb-3">
+                        <button type="button" id="tabUpload" class="px-3 py-1.5 bg-primary-600/20 text-white rounded-lg text-sm border border-primary-500/30 transition shadow-sm">
+                            <span class="material-icons text-sm align-middle mr-1">cloud_upload</span> Upload
+                        </button>
+                        <button type="button" id="tabCamera" class="px-3 py-1.5 bg-white/5 text-gray-400 rounded-lg text-sm transition hover:bg-white/10 shadow-sm">
+                            <span class="material-icons text-sm align-middle mr-1">photo_camera</span> Camera
+                        </button>
+                    </div>
+
+                    <!-- Standard Upload Zone -->
+                    <div id="uploadZone" class="upload-zone transition-all">
                         <span class="material-icons text-4xl text-gray-500 mb-2">cloud_upload</span>
                         <p class="text-gray-400">Drag & drop images or click to browse</p>
                         <p class="text-xs text-gray-500 mt-1">Max 10MB per image (JPG, PNG, GIF)</p>
                         <input type="file" id="images" name="images" multiple accept="image/*" class="hidden">
                     </div>
+
+                    <!-- Camera UI Zone (Hidden by default) -->
+                    <div id="cameraZone" class="hidden flex-col items-center justify-center border border-dashed border-white/20 rounded-xl p-4 bg-white/5 transition-all">
+                        <div class="relative w-full max-w-sm rounded-lg overflow-hidden bg-black aspect-video flex items-center justify-center">
+                            <video id="videoFeed" autoplay playsinline class="w-full h-full object-cover hidden"></video>
+                            <span id="cameraPlaceholder" class="material-icons text-4xl text-gray-600">videocam_off</span>
+                        </div>
+                        <canvas id="cameraCanvas" class="hidden"></canvas>
+                        
+                        <div class="mt-4 flex gap-2">
+                            <button type="button" id="startCameraBtn" class="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg flex items-center transition">
+                                <span class="material-icons mr-2 text-sm">videocam</span> Start Camera
+                            </button>
+                            <button type="button" id="takePhotoBtn" class="hidden px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg flex items-center transition shadow-lg shadow-green-500/20">
+                                <span class="material-icons mr-2 text-sm">camera_alt</span> Snap Photo
+                            </button>
+                            <button type="button" id="stopCameraBtn" class="hidden px-3 py-2 bg-red-500 hover:bg-red-400 text-white rounded-lg transition" title="Stop Camera">
+                                <span class="material-icons text-sm">stop</span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2 text-center">Camera works best on mobile devices or secure contexts (localhost/HTTPS)</p>
+                    </div>
+
                     <div id="imagePreviews" class="flex flex-wrap gap-3 mt-3"></div>
                 </div>
 
@@ -809,6 +844,98 @@
             element.remove();
         }
 
+        // Camera Implementation
+        let activeStream = null;
+        let photoCounter = 0;
+
+        document.getElementById('tabUpload').addEventListener('click', () => {
+            document.getElementById('tabUpload').classList.replace('bg-white/5', 'bg-primary-600/20');
+            document.getElementById('tabUpload').classList.replace('text-gray-400', 'text-white');
+            document.getElementById('tabUpload').classList.add('border', 'border-primary-500/30');
+
+            document.getElementById('tabCamera').classList.replace('bg-primary-600/20', 'bg-white/5');
+            document.getElementById('tabCamera').classList.replace('text-white', 'text-gray-400');
+            document.getElementById('tabCamera').classList.remove('border', 'border-primary-500/30');
+
+            document.getElementById('cameraZone').classList.replace('flex', 'hidden');
+            document.getElementById('uploadZone').classList.remove('hidden');
+            stopCamera();
+        });
+
+        document.getElementById('tabCamera').addEventListener('click', () => {
+            document.getElementById('tabCamera').classList.replace('bg-white/5', 'bg-primary-600/20');
+            document.getElementById('tabCamera').classList.replace('text-gray-400', 'text-white');
+            document.getElementById('tabCamera').classList.add('border', 'border-primary-500/30');
+
+            document.getElementById('tabUpload').classList.replace('bg-primary-600/20', 'bg-white/5');
+            document.getElementById('tabUpload').classList.replace('text-white', 'text-gray-400');
+            document.getElementById('tabUpload').classList.remove('border', 'border-primary-500/30');
+
+            document.getElementById('uploadZone').classList.add('hidden');
+            document.getElementById('cameraZone').classList.replace('hidden', 'flex');
+        });
+
+        function stopCamera() {
+            if (activeStream) {
+                activeStream.getTracks().forEach(t => t.stop());
+                activeStream = null;
+            }
+            document.getElementById('videoFeed').classList.add('hidden');
+            document.getElementById('cameraPlaceholder').classList.remove('hidden');
+            document.getElementById('takePhotoBtn').classList.add('hidden');
+            document.getElementById('stopCameraBtn').classList.add('hidden');
+            document.getElementById('startCameraBtn').classList.remove('hidden');
+        }
+
+        document.getElementById('startCameraBtn').addEventListener('click', async () => {
+            try {
+                activeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const videoFeed = document.getElementById('videoFeed');
+                videoFeed.srcObject = activeStream;
+                videoFeed.classList.remove('hidden');
+                document.getElementById('cameraPlaceholder').classList.add('hidden');
+
+                document.getElementById('startCameraBtn').classList.add('hidden');
+                document.getElementById('takePhotoBtn').classList.remove('hidden');
+                document.getElementById('stopCameraBtn').classList.remove('hidden');
+            } catch (err) {
+                showToast('Camera access denied or unavailable', 'error');
+            }
+        });
+
+        document.getElementById('stopCameraBtn').addEventListener('click', stopCamera);
+
+        document.getElementById('takePhotoBtn').addEventListener('click', () => {
+            const video = document.getElementById('videoFeed');
+            const canvas = document.getElementById('cameraCanvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert canvas to File object
+            canvas.toBlob((blob) => {
+                const file = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                
+                // Add to selectedFiles array (trick the form)
+                selectedFiles.push(file);
+
+                // Add to preview UI
+                const previews = document.getElementById('imagePreviews');
+                const div = document.createElement('div');
+                div.className = 'image-preview';
+                div.innerHTML = `
+                    <img src="${URL.createObjectURL(blob)}" alt="Captured preview">
+                    <button type="button" class="remove-btn" onclick="removeImage(${selectedFiles.length - 1}, this.parentElement)">
+                        <span class="material-icons text-xs">close</span>
+                    </button>
+                `;
+                previews.appendChild(div);
+
+                showToast('Photo captured!', 'success');
+            }, 'image/jpeg', 0.9);
+        });
+
         function openNewIssueModal(issue = null) {
             document.getElementById('newIssueModal').classList.add('open');
 
@@ -929,6 +1056,7 @@
             document.getElementById('imagePreviews').innerHTML = '';
             selectedFiles = [];
             currentIssueId = null;
+            stopCamera();
         }
 
         // OTP Flow Functions
