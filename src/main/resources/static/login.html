@@ -145,6 +145,11 @@
             firebase.initializeApp(firebaseConfig);
         }
 
+        // Auto-trigger Google login if opened from HF iframe
+        if (new URLSearchParams(window.location.search).get('google') === '1') {
+            setTimeout(() => document.getElementById('googleLoginBtn').click(), 500);
+        }
+
         // Handle redirect result when page loads (after Google redirects back)
         firebase.auth().getRedirectResult().then(async (result) => {
             if (result && result.user) {
@@ -182,6 +187,11 @@
         // Google Auth Logic
         const provider = new firebase.auth.GoogleAuthProvider();
         document.getElementById('googleLoginBtn').addEventListener('click', () => {
+            // If running inside an iframe (Hugging Face), open in new tab to bypass OAuth iframe restriction
+            if (window.self !== window.top) {
+                window.open('https://sakthivikram-geo-location.hf.space/login.html?google=1', '_blank');
+                return;
+            }
             const btn = document.getElementById('googleLoginBtn');
             btn.innerHTML = '<div class="spinner w-5 h-5"></div> Connecting...';
             btn.disabled = true;
@@ -361,4 +371,5 @@
 </body>
 
 </html>
+
 
