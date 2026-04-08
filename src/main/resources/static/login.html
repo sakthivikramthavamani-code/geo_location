@@ -145,36 +145,38 @@
             firebase.initializeApp(firebaseConfig);
         }
 
-        // Auto-trigger Google login if opened from HF iframe (and NOT a redirect-back from Google)
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('google') === '1') {
-            // Clear the param immediately so Google's redirect-back doesn't retrigger
-            history.replaceState({}, document.title, window.location.pathname);
-            // Only auto-trigger if there's no pending redirect result (avoid loop)
-            firebase.auth().getRedirectResult().then((result) => {
-                if (!result || !result.user) {
-                    // No pending redirect, safe to trigger fresh login
-                    setTimeout(() => document.getElementById('googleLoginBtn').click(), 300);
-                }
-            }).catch(() => {
-                setTimeout(() => document.getElementById('googleLoginBtn').click(), 300);
-            });
-        }
+        const provider = new firebase.auth.GoogleAuthProvider();
 
-        // Handle redirect result when page loads (after Google redirects back)
+        // --- Google Login Handler ---
+        document.getElementById('googleLoginBtn').addEventListener('click', () => {
+            const btn = document.getElementById('googleLoginBtn');
+
+            // If inside HF iframe, open a clean new tab for OAuth
+            if (window.self !== window.top) {
+                sessionStorage.setItem('trigger_google_auth', '1');
+                window.open('https://sakthivikram-geo-location.hf.space/login.html', '_blank');
+                return;
+            }
+
+            // Full page - run the redirect
+            btn.disabled = true;
+            btn.innerHTML = '<div class="animate-spin inline-block w-4 h-4 border-2 border-gray-800 border-t-transparent rounded-full mr-2"></div> Redirecting to Google...';
+            firebase.auth().signInWithRedirect(provider);
+        });
+
+        // --- Handle result when Google redirects back ---
         firebase.auth().getRedirectResult().then(async (result) => {
             if (result && result.user) {
                 const user = result.user;
-                const payload = {
-                    email: user.email,
-                    fullName: user.displayName || 'Google User',
-                    photoUrl: user.photoURL || ''
-                };
                 try {
                     const response = await fetch('/api/auth/google-login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify({
+                            email: user.email,
+                            fullName: user.displayName || 'Google User',
+                            photoUrl: user.photoURL || ''
+                        })
                     });
                     const resData = await response.json();
                     if (resData.success) {
@@ -185,78 +187,25 @@
                             fullName: resData.data.fullName,
                             roles: resData.data.roles
                         }));
+                        sessionStorage.removeItem('trigger_google_auth');
                         if (resData.data.roles.includes('ROLE_ADMIN')) {
                             window.location.href = '/admin-dashboard.html';
                         } else {
                             window.location.href = '/citizen-dashboard.html';
                         }
+                    } else {
+                        showToast(resData.message || 'Server error during Google login', 'error');
                     }
-                } catch (e) { console.error('Google redirect login error:', e); }
+                } catch (e) {
+                    showToast('Network error. Please try again.', 'error');
+                }
+            } else if (sessionStorage.getItem('trigger_google_auth') === '1' && window.self === window.top) {
+                // New tab was opened to trigger auth - fire it once, then clear flag
+                sessionStorage.removeItem('trigger_google_auth');
+                firebase.auth().signInWithRedirect(provider);
             }
-        }).catch((err) => console.error('Redirect result error:', err));
-
-        // Google Auth Logic
-        const provider = new firebase.auth.GoogleAuthProvider();
-        document.getElementById('googleLoginBtn').addEventListener('click', () => {
-            // If running inside an iframe (Hugging Face), open in new tab to bypass OAuth iframe restriction
-            if (window.self !== window.top) {
-                window.open('https://sakthivikram-geo-location.hf.space/login.html?google=1', '_blank');
-                return;
-            }
-            const btn = document.getElementById('googleLoginBtn');
-            btn.innerHTML = '<div class="spinner w-5 h-5"></div> Connecting...';
-            btn.disabled = true;
-
-            firebase.auth().signInWithRedirect(provider)
-                .then(async (result) => {
-                    const user = result.user;
-                    
-                    const payload = {
-                        email: user.email,
-                        fullName: user.displayName || 'Google User',
-                        photoUrl: user.photoURL || ''
-                    };
-
-                    try {
-                        const response = await fetch('/api/auth/google-login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-
-                        const resData = await response.json();
-
-                        if (resData.success) {
-                            localStorage.setItem('token', resData.data.token);
-                            localStorage.setItem('user', JSON.stringify({
-                                id: resData.data.userId,
-                                email: resData.data.email,
-                                fullName: resData.data.fullName,
-                                roles: resData.data.roles
-                            }));
-
-                            showToast('Google Login successful!', 'success');
-                            setTimeout(() => {
-                                if (resData.data.roles.includes('ROLE_ADMIN')) {
-                                    window.location.href = '/admin-dashboard.html';
-                                } else {
-                                    window.location.href = '/citizen-dashboard.html';
-                                }
-                            }, 1000);
-                        } else {
-                            throw new Error(resData.message || 'Server Google Auth failed');
-                        }
-                    } catch (error) {
-                        showToast(error.message, 'error');
-                        btn.disabled = false;
-                        btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6"> Sign in with Google';
-                    }
-                })
-                .catch((error) => {
-                    showToast('Google Sign In Cancelled or Failed', 'error');
-                    btn.disabled = false;
-                    btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-6 h-6"> Sign in with Google';
-                });
+        }).catch((err) => {
+            console.error('Google redirect error:', err);
         });
 
         function togglePassword() {
@@ -382,6 +331,7 @@
 </body>
 
 </html>
+
 
 
 
