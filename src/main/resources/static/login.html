@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -151,61 +151,60 @@
         document.getElementById('googleLoginBtn').addEventListener('click', () => {
             const btn = document.getElementById('googleLoginBtn');
 
-            // If inside HF iframe, open a clean new tab for OAuth
+            // If inside HF iframe → open a new full-page tab. User clicks Google there.
             if (window.self !== window.top) {
-                sessionStorage.setItem('trigger_google_auth', '1');
                 window.open('https://sakthivikram-geo-location.hf.space/login.html', '_blank');
                 return;
             }
 
-            // Full page - run the redirect
+            // Full page (or localhost) → use signInWithPopup directly
             btn.disabled = true;
-            btn.innerHTML = '<div class="animate-spin inline-block w-4 h-4 border-2 border-gray-800 border-t-transparent rounded-full mr-2"></div> Redirecting to Google...';
-            firebase.auth().signInWithRedirect(provider);
-        });
+            btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"> Connecting to Google...';
 
-        // --- Handle result when Google redirects back ---
-        firebase.auth().getRedirectResult().then(async (result) => {
-            if (result && result.user) {
-                const user = result.user;
-                try {
-                    const response = await fetch('/api/auth/google-login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            email: user.email,
-                            fullName: user.displayName || 'Google User',
-                            photoUrl: user.photoURL || ''
-                        })
-                    });
-                    const resData = await response.json();
-                    if (resData.success) {
-                        localStorage.setItem('token', resData.data.token);
-                        localStorage.setItem('user', JSON.stringify({
-                            id: resData.data.userId,
-                            email: resData.data.email,
-                            fullName: resData.data.fullName,
-                            roles: resData.data.roles
-                        }));
-                        sessionStorage.removeItem('trigger_google_auth');
-                        if (resData.data.roles.includes('ROLE_ADMIN')) {
-                            window.location.href = '/admin-dashboard.html';
+            firebase.auth().signInWithPopup(provider)
+                .then(async (result) => {
+                    const user = result.user;
+                    btn.innerHTML = '<div class="animate-spin inline-block w-4 h-4 border-2 border-gray-800 border-t-transparent rounded-full mr-2"></div> Verifying...';
+
+                    try {
+                        const response = await fetch('/api/auth/google-login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                email: user.email,
+                                fullName: user.displayName || 'Google User',
+                                photoUrl: user.photoURL || ''
+                            })
+                        });
+                        const resData = await response.json();
+                        if (resData.success) {
+                            localStorage.setItem('token', resData.data.token);
+                            localStorage.setItem('user', JSON.stringify({
+                                id: resData.data.userId,
+                                email: resData.data.email,
+                                fullName: resData.data.fullName,
+                                roles: resData.data.roles
+                            }));
+                            if (resData.data.roles.includes('ROLE_ADMIN')) {
+                                window.location.href = '/admin-dashboard.html';
+                            } else {
+                                window.location.href = '/citizen-dashboard.html';
+                            }
                         } else {
-                            window.location.href = '/citizen-dashboard.html';
+                            throw new Error(resData.message || 'Server error');
                         }
-                    } else {
-                        showToast(resData.message || 'Server error during Google login', 'error');
+                    } catch (e) {
+                        showToast('Login failed: ' + e.message, 'error');
+                        btn.disabled = false;
+                        btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"> Sign in with Google';
                     }
-                } catch (e) {
-                    showToast('Network error. Please try again.', 'error');
-                }
-            } else if (sessionStorage.getItem('trigger_google_auth') === '1' && window.self === window.top) {
-                // New tab was opened to trigger auth - fire it once, then clear flag
-                sessionStorage.removeItem('trigger_google_auth');
-                firebase.auth().signInWithRedirect(provider);
-            }
-        }).catch((err) => {
-            console.error('Google redirect error:', err);
+                })
+                .catch((err) => {
+                    // User closed popup or popup blocked
+                    showToast(err.code === 'auth/popup-closed-by-user' ? 'Sign-in cancelled.' : 'Google sign-in failed: ' + err.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"> Sign in with Google';
+                });
         });
 
         function togglePassword() {
