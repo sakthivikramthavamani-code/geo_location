@@ -145,9 +145,20 @@
             firebase.initializeApp(firebaseConfig);
         }
 
-        // Auto-trigger Google login if opened from HF iframe
-        if (new URLSearchParams(window.location.search).get('google') === '1') {
-            setTimeout(() => document.getElementById('googleLoginBtn').click(), 500);
+        // Auto-trigger Google login if opened from HF iframe (and NOT a redirect-back from Google)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('google') === '1') {
+            // Clear the param immediately so Google's redirect-back doesn't retrigger
+            history.replaceState({}, document.title, window.location.pathname);
+            // Only auto-trigger if there's no pending redirect result (avoid loop)
+            firebase.auth().getRedirectResult().then((result) => {
+                if (!result || !result.user) {
+                    // No pending redirect, safe to trigger fresh login
+                    setTimeout(() => document.getElementById('googleLoginBtn').click(), 300);
+                }
+            }).catch(() => {
+                setTimeout(() => document.getElementById('googleLoginBtn').click(), 300);
+            });
         }
 
         // Handle redirect result when page loads (after Google redirects back)
@@ -371,5 +382,6 @@
 </body>
 
 </html>
+
 
 
