@@ -1,12 +1,10 @@
-// IMPORTANT: Replace the values below with your own Firebase project configuration.
-// Do NOT commit real API keys to the repository.
-// Go to Firebase Console → Project Settings → Your Web App → Config
+// Firebase Configuration - GeoReport Project
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID"
+  apiKey: "AIzaSyBPThccQiTOB1lzEMKqhz15gQCLSUM_Cu4",
+  authDomain: "geo-location-77769.firebaseapp.com",
+  projectId: "geo-location-77769",
+  storageBucket: "geo-location-77769.firebasestorage.app",
+  messagingSenderId: "91448816829",
+  appId: "1:91448816829:web:d421078b58592a355e33d4",
+  measurementId: "G-EKFQXJ9DVX"
 };
