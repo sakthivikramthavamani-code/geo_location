@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -145,6 +145,40 @@
             firebase.initializeApp(firebaseConfig);
         }
 
+        // Handle redirect result when page loads (after Google redirects back)
+        firebase.auth().getRedirectResult().then(async (result) => {
+            if (result && result.user) {
+                const user = result.user;
+                const payload = {
+                    email: user.email,
+                    fullName: user.displayName || 'Google User',
+                    photoUrl: user.photoURL || ''
+                };
+                try {
+                    const response = await fetch('/api/auth/google-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const resData = await response.json();
+                    if (resData.success) {
+                        localStorage.setItem('token', resData.data.token);
+                        localStorage.setItem('user', JSON.stringify({
+                            id: resData.data.userId,
+                            email: resData.data.email,
+                            fullName: resData.data.fullName,
+                            roles: resData.data.roles
+                        }));
+                        if (resData.data.roles.includes('ROLE_ADMIN')) {
+                            window.location.href = '/admin-dashboard.html';
+                        } else {
+                            window.location.href = '/citizen-dashboard.html';
+                        }
+                    }
+                } catch (e) { console.error('Google redirect login error:', e); }
+            }
+        }).catch((err) => console.error('Redirect result error:', err));
+
         // Google Auth Logic
         const provider = new firebase.auth.GoogleAuthProvider();
         document.getElementById('googleLoginBtn').addEventListener('click', () => {
@@ -152,7 +186,7 @@
             btn.innerHTML = '<div class="spinner w-5 h-5"></div> Connecting...';
             btn.disabled = true;
 
-            firebase.auth().signInWithPopup(provider)
+            firebase.auth().signInWithRedirect(provider)
                 .then(async (result) => {
                     const user = result.user;
                     
@@ -327,3 +361,4 @@
 </body>
 
 </html>
+
