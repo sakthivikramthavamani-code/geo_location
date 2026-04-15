@@ -141,6 +141,12 @@ class MapManager {
                     // Add a pulsing marker at the current location
                     self.showCurrentLocationMarker(loc.latitude, loc.longitude);
 
+                    // If picker mode is active, set the picked location
+                    if (self._onLocationSelected) {
+                        self.setPickedLocation(loc.latitude, loc.longitude);
+                        self._onLocationSelected(loc.latitude, loc.longitude);
+                    }
+
                     if (window.showToast) {
                         showToast('Location found!', 'success');
                     }
@@ -395,54 +401,17 @@ class MapManager {
      */
     enableLocationPicker(onLocationSelected) {
         if (!this.map) return;
+        
+        this._onLocationSelected = onLocationSelected;
 
         // Add click handler
         this.map.on('click', (e) => {
             const { lat, lng } = e.latlng;
             this.setPickedLocation(lat, lng);
-            if (onLocationSelected) {
-                onLocationSelected(lat, lng);
+            if (this._onLocationSelected) {
+                this._onLocationSelected(lat, lng);
             }
         });
-
-        // Add "Use My Location" control
-        const locationControl = L.control({ position: 'topleft' });
-        locationControl.onAdd = () => {
-            const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-            div.innerHTML = `
-                <a href="#" id="useMyLocation" title="Use my location" style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 34px;
-                    height: 34px;
-                    background: white;
-                    border-radius: 4px;
-                ">
-                    <span class="material-icons" style="font-size: 18px; color: #333;">my_location</span>
-                </a>
-            `;
-
-            div.querySelector('#useMyLocation').addEventListener('click', async (e) => {
-                e.preventDefault();
-                try {
-                    const loc = await this.getCurrentLocation();
-                    this.centerOn(loc.latitude, loc.longitude);
-                    this.setPickedLocation(loc.latitude, loc.longitude);
-                    if (onLocationSelected) {
-                        onLocationSelected(loc.latitude, loc.longitude);
-                    }
-                } catch (error) {
-                    console.error('Error getting location:', error);
-                    if (window.showToast) {
-                        showToast('Could not get your location', 'error');
-                    }
-                }
-            });
-
-            return div;
-        };
-        locationControl.addTo(this.map);
     }
 
     /**

@@ -1,5 +1,5 @@
 // GeoReport Service Worker for PWA functionality
-const CACHE_NAME = 'georeport-v1';
+const CACHE_NAME = 'georeport-v2';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache on install
