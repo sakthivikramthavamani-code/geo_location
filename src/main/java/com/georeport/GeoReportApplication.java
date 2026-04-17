@@ -23,6 +23,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class GeoReportApplication {
 
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        // Set JVM timezone to IST to fix timestamp issues (e.g., 5hrs ago)
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Kolkata"));
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(GeoReportApplication.class, args);
         System.out.println("==============================================");
